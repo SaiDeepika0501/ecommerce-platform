@@ -6,21 +6,17 @@
   "scripts": {
     "install-all": "npm install && npm run install-backend && npm run install-frontend",
     "install-backend": "cd backend && npm install",
-    "install-frontend": "cd frontend/shell && npm install && cd ../products && npm install && cd ../cart && npm install && cd ../users && npm install && cd ../admin && npm install",
+    "install-frontend": "cd frontend/shell && npm install && cd ../products && npm install && cd ../cart && npm install && cd ../users && npm install && cd ../orders && npm install",
     "start-backend": "cd backend && npm run dev",
     "start-shell": "cd frontend/shell && npm start",
     "start-products": "cd frontend/products && npm start",
     "start-cart": "cd frontend/cart && npm start",
     "start-users": "cd frontend/users && npm start",
-    "start-admin": "cd frontend/admin && npm start",
-    "start-all": "concurrently \"npm run start-backend\" \"npm run start-shell\" \"npm run start-products\" \"npm run start-cart\" \"npm run start-users\" \"npm run start-admin\"",
+    "start-orders": "cd frontend/orders && npm start",
+    "start-all": "concurrently \"npm run start-backend\" \"npm run start-shell\" \"npm run start-products\" \"npm run start-cart\" \"npm run start-users\" \"npm run start-orders\"",
     "dev": "npm run start-all",
     "build": "npm run build-frontend",
-    "build-frontend": "cd frontend/shell && npm run build && cd ../products && npm run build && cd ../cart && npm run build && cd ../users && npm run build && cd ../admin && npm run build",
-    "health-check": "curl -f http://localhost:5000/health || echo 'Backend not running'",
-    "test-login": "curl -X POST http://localhost:5000/api/auth/login -H 'Content-Type: application/json' -d '{\"email\": \"admin@example.com\", \"password\": \"password123\"}' || echo 'Login test failed'",
-    "cleanup": "lsof -ti:3000,3001,3002,3003,3004,5000 | xargs kill -9 2>/dev/null || echo 'No processes to kill'",
-    "setup-mongodb": "docker run -d -p 27017:27017 --name ecommerce-mongodb -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=password123 mongo || echo 'MongoDB container already exists or Docker not available'"
+    "build-frontend": "cd frontend/shell && npm run build && cd ../products && npm run build && cd ../cart && npm run build && cd ../users && npm run build && cd ../orders && npm run build"
   },
   "workspaces": [
     "backend",

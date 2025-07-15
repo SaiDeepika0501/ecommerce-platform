@@ -1,378 +1,319 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import './UserManagement.css';
 
-const UserManagement = () => {
+const UserManagement = ({ stats, onRefresh }) => {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all');
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [showUserDetails, setShowUserDetails] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  const userRoles = [
-    { value: 'customer', label: 'Customer', color: '#3498db' },
-    { value: 'admin', label: 'Admin', color: '#e74c3c' },
-    { value: 'moderator', label: 'Moderator', color: '#f39c12' }
-  ];
-
-  const userStatuses = [
-    { value: 'active', label: 'Active', color: '#27ae60' },
-    { value: 'inactive', label: 'Inactive', color: '#95a5a6' },
-    { value: 'suspended', label: 'Suspended', color: '#e74c3c' }
-  ];
+  const [filterRole, setFilterRole] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
+  useEffect(() => {
+    filterUsers();
+  }, [users, searchTerm, filterRole, filterStatus, sortBy, sortOrder]);
+
   const fetchUsers = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/users/admin/all', {
+      const response = await fetch('http://localhost:5000/api/admin/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUsers(response.data);
-      setError('');
-    } catch (err) {
-      console.error('Error fetching users:', err);
-      setError('Failed to fetch users. Please try again.');
+      
+      if (response.ok) {
+        const userData = await response.json();
+        setUsers(userData);
+      } else {
+        console.error('Failed to fetch users');
+        // Mock data for demo
+        setUsers([
+          { _id: '1', name: 'John Doe', email: 'john@example.com', role: 'customer', isActive: true, createdAt: '2024-01-15', lastLogin: '2024-01-20' },
+          { _id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'customer', isActive: true, createdAt: '2024-01-10', lastLogin: '2024-01-18' },
+          { _id: '3', name: 'Bob Wilson', email: 'bob@example.com', role: 'customer', isActive: false, createdAt: '2024-01-05', lastLogin: '2024-01-12' },
+          { _id: '4', name: 'Admin User', email: 'admin@example.com', role: 'admin', isActive: true, createdAt: '2024-01-01', lastLogin: '2024-01-20' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const updateUserStatus = async (userId, newStatus) => {
-    try {
-      setActionLoading(true);
-      const token = localStorage.getItem('token');
-      await axios.patch(
-        `http://localhost:5000/api/users/${userId}/status`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+  const filterUsers = () => {
+    let filtered = [...users];
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(user => 
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      
-      // Update local state
-      setUsers(users.map(user => 
-        user._id === userId ? { ...user, status: newStatus } : user
-      ));
-      
-      if (selectedUser && selectedUser._id === userId) {
-        setSelectedUser({ ...selectedUser, status: newStatus });
-      }
-      
-      setError('');
-    } catch (err) {
-      console.error('Error updating user status:', err);
-      setError('Failed to update user status. Please try again.');
-    } finally {
-      setActionLoading(false);
     }
+
+    // Role filter
+    if (filterRole !== 'all') {
+      filtered = filtered.filter(user => user.role === filterRole);
+    }
+
+    // Status filter
+    if (filterStatus !== 'all') {
+      const isActive = filterStatus === 'active';
+      filtered = filtered.filter(user => user.isActive === isActive);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let aValue = a[sortBy];
+      let bValue = b[sortBy];
+
+      if (sortBy === 'createdAt' || sortBy === 'lastLogin') {
+        aValue = new Date(aValue);
+        bValue = new Date(bValue);
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    setFilteredUsers(filtered);
   };
 
-  const updateUserRole = async (userId, newRole) => {
+  const toggleUserStatus = async (userId, currentStatus) => {
     try {
-      setActionLoading(true);
       const token = localStorage.getItem('token');
-      await axios.patch(
-        `http://localhost:5000/api/users/${userId}/role`,
-        { role: newRole },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      // Update local state
-      setUsers(users.map(user => 
-        user._id === userId ? { ...user, role: newRole } : user
-      ));
-      
-      if (selectedUser && selectedUser._id === userId) {
-        setSelectedUser({ ...selectedUser, role: newRole });
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ isActive: !currentStatus })
+      });
+
+      if (response.ok) {
+        setUsers(users.map(user => 
+          user._id === userId ? { ...user, isActive: !currentStatus } : user
+        ));
+        onRefresh();
       }
-      
-      setError('');
-    } catch (err) {
-      console.error('Error updating user role:', err);
-      setError('Failed to update user role. Please try again.');
-    } finally {
-      setActionLoading(false);
+    } catch (error) {
+      console.error('Error updating user status:', error);
     }
   };
 
   const deleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      setActionLoading(true);
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/users/${userId}`, {
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+        method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-      // Remove from local state
-      setUsers(users.filter(user => user._id !== userId));
-      
-      if (selectedUser && selectedUser._id === userId) {
-        setShowUserDetails(false);
-        setSelectedUser(null);
+
+      if (response.ok) {
+        setUsers(users.filter(user => user._id !== userId));
+        onRefresh();
       }
-      
-      setError('');
-    } catch (err) {
-      console.error('Error deleting user:', err);
-      setError('Failed to delete user. Please try again.');
-    } finally {
-      setActionLoading(false);
+    } catch (error) {
+      console.error('Error deleting user:', error);
     }
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesFilter = filter === 'all' || user.role === filter || user.status === filter;
-    const matchesSearch = 
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const promoteToAdmin = async (userId) => {
+    if (!window.confirm('Are you sure you want to promote this user to admin?')) return;
 
-  const getRoleColor = (role) => {
-    const roleObj = userRoles.find(r => r.value === role);
-    return roleObj ? roleObj.color : '#95a5a6';
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ role: 'admin' })
+      });
+
+      if (response.ok) {
+        setUsers(users.map(user => 
+          user._id === userId ? { ...user, role: 'admin' } : user
+        ));
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Error promoting user:', error);
+    }
   };
 
-  const getStatusColor = (status) => {
-    const statusObj = userStatuses.find(s => s.value === status);
-    return statusObj ? statusObj.color : '#95a5a6';
-  };
-
-  const getRoleLabel = (role) => {
-    const roleObj = userRoles.find(r => r.value === role);
-    return roleObj ? roleObj.label : role;
-  };
-
-  const getStatusLabel = (status) => {
-    const statusObj = userStatuses.find(s => s.value === status);
-    return statusObj ? statusObj.label : status;
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const showUserDetailsModal = (user) => {
-    setSelectedUser(user);
-    setShowUserDetails(true);
-  };
-
-  if (loading) {
-    return (
-      <div className="user-management">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading users...</p>
-        </div>
-      </div>
-    );
-  }
+  const activeUsers = users.filter(user => user.isActive).length;
+  const adminUsers = users.filter(user => user.role === 'admin').length;
+  const customerUsers = users.filter(user => user.role === 'customer').length;
 
   return (
     <div className="user-management">
-      <div className="user-management-header">
-        <h2>User Management</h2>
-        <button 
-          className="refresh-btn"
-          onClick={fetchUsers}
-          disabled={loading}
-        >
-          🔄 Refresh
+      <div className="management-header">
+        <h2>👥 Users Management</h2>
+        <button className="refresh-btn" onClick={fetchUsers} disabled={loading}>
+          {loading ? '🔄 Loading...' : '🔄 Refresh'}
         </button>
       </div>
 
-      {error && (
-        <div className="error-message">
-          <span>⚠️ {error}</span>
-          <button onClick={() => setError('')}>×</button>
+      {/* Stats Cards */}
+      <div className="stats-overview">
+        <div className="stat-card">
+          <div className="stat-icon">👥</div>
+          <div className="stat-info">
+            <h3>{stats.totalUsers || users.length}</h3>
+            <p>Total Users</p>
+          </div>
         </div>
-      )}
-
-      <div className="user-filters">
-        <div className="filter-group">
-          <label>Filter by:</label>
-          <select 
-            value={filter} 
-            onChange={(e) => setFilter(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Users</option>
-            <optgroup label="Role">
-              {userRoles.map(role => (
-                <option key={role.value} value={role.value}>
-                  {role.label}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Status">
-              {userStatuses.map(status => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
-              ))}
-            </optgroup>
-          </select>
+        <div className="stat-card active">
+          <div className="stat-icon">✅</div>
+          <div className="stat-info">
+            <h3>{activeUsers}</h3>
+            <p>Active Users</p>
+          </div>
         </div>
+        <div className="stat-card admin">
+          <div className="stat-icon">👑</div>
+          <div className="stat-info">
+            <h3>{adminUsers}</h3>
+            <p>Administrators</p>
+          </div>
+        </div>
+        <div className="stat-card customer">
+          <div className="stat-icon">🛍️</div>
+          <div className="stat-info">
+            <h3>{customerUsers}</h3>
+            <p>Customers</p>
+          </div>
+        </div>
+      </div>
 
-        <div className="search-group">
-          <label>Search:</label>
+      {/* Filters and Search */}
+      <div className="filters-section">
+        <div className="search-box">
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="🔍 Search users by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
         </div>
-      </div>
+        
+        <div className="filter-controls">
+          <select
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Roles</option>
+            <option value="admin">Admins</option>
+            <option value="customer">Customers</option>
+          </select>
 
-      <div className="user-stats">
-        <div 
-          className={`stat-card clickable ${filter === 'all' ? 'active' : ''}`}
-          onClick={() => setFilter('all')}
-        >
-          <h3>{users.length}</h3>
-          <p>Total Users</p>
-        </div>
-        <div 
-          className={`stat-card clickable ${filter === 'customer' ? 'active' : ''}`}
-          onClick={() => setFilter('customer')}
-        >
-          <h3>{users.filter(u => u.role === 'customer').length}</h3>
-          <p>Customers</p>
-        </div>
-        <div 
-          className={`stat-card clickable ${filter === 'admin' ? 'active' : ''}`}
-          onClick={() => setFilter('admin')}
-        >
-          <h3>{users.filter(u => u.role === 'admin').length}</h3>
-          <p>Admins</p>
-        </div>
-        <div 
-          className={`stat-card clickable ${filter === 'moderator' ? 'active' : ''}`}
-          onClick={() => setFilter('moderator')}
-        >
-          <h3>{users.filter(u => u.role === 'moderator').length}</h3>
-          <p>Moderators</p>
-        </div>
-        <div 
-          className={`stat-card clickable ${filter === 'active' ? 'active' : ''}`}
-          onClick={() => setFilter('active')}
-        >
-          <h3>{users.filter(u => u.status === 'active').length}</h3>
-          <p>Active</p>
-        </div>
-        <div 
-          className={`stat-card clickable ${filter === 'inactive' ? 'active' : ''}`}
-          onClick={() => setFilter('inactive')}
-        >
-          <h3>{users.filter(u => u.status === 'inactive').length}</h3>
-          <p>Inactive</p>
-        </div>
-        <div 
-          className={`stat-card clickable ${filter === 'suspended' ? 'active' : ''}`}
-          onClick={() => setFilter('suspended')}
-        >
-          <h3>{users.filter(u => u.status === 'suspended').length}</h3>
-          <p>Suspended</p>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="filter-select"
+          >
+            <option value="createdAt">Sort by Join Date</option>
+            <option value="name">Sort by Name</option>
+            <option value="lastLogin">Sort by Last Login</option>
+          </select>
+
+          <button
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="sort-toggle"
+          >
+            {sortOrder === 'asc' ? '⬆️' : '⬇️'}
+          </button>
         </div>
       </div>
 
+      {/* Users Table */}
       <div className="users-table-container">
         <table className="users-table">
           <thead>
             <tr>
               <th>User</th>
-              <th>Email</th>
               <th>Role</th>
               <th>Status</th>
-              <th>Joined</th>
+              <th>Join Date</th>
               <th>Last Login</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.map(user => (
-              <tr key={user._id}>
-                <td>
-                  <div className="user-info">
-                    <div className="user-avatar">
-                      {user.firstName?.[0]?.toUpperCase()}{user.lastName?.[0]?.toUpperCase()}
-                    </div>
-                    <div className="user-details">
-                      <div className="user-name">
-                        {user.firstName || ''} {user.lastName || ''}
-                      </div>
-                      <div className="user-id">ID: {user._id.slice(-8)}</div>
-                    </div>
+              <tr key={user._id} className={user.isActive ? 'user-active' : 'user-inactive'}>
+                <td className="user-info">
+                  <div className="user-avatar">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="user-details">
+                    <div className="user-name">{user.name}</div>
+                    <div className="user-email">{user.email}</div>
                   </div>
                 </td>
                 <td>
-                  <span className="user-email">{user.email}</span>
-                </td>
-                <td>
-                  <span 
-                    className="role-badge"
-                    style={{ backgroundColor: getRoleColor(user.role) }}
-                  >
-                    {getRoleLabel(user.role)}
+                  <span className={`role-badge ${user.role}`}>
+                    {user.role === 'admin' ? '👑 Admin' : '🛍️ Customer'}
                   </span>
                 </td>
                 <td>
-                  <span 
-                    className="status-badge"
-                    style={{ backgroundColor: getStatusColor(user.status || 'active') }}
-                  >
-                    {getStatusLabel(user.status || 'active')}
+                  <span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>
+                    {user.isActive ? '✅ Active' : '❌ Inactive'}
                   </span>
                 </td>
-                <td>{formatDate(user.createdAt)}</td>
-                <td>
-                  {user.lastLogin ? formatDate(user.lastLogin) : 'Never'}
-                </td>
-                <td>
-                  <div className="action-buttons">
+                <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                <td>{user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}</td>
+                <td className="user-actions">
+                  <button
+                    onClick={() => toggleUserStatus(user._id, user.isActive)}
+                    className={`action-btn ${user.isActive ? 'deactivate' : 'activate'}`}
+                    title={user.isActive ? 'Deactivate User' : 'Activate User'}
+                  >
+                    {user.isActive ? '🚫' : '✅'}
+                  </button>
+                  {user.role === 'customer' && (
                     <button
-                      className="view-btn"
-                      onClick={() => showUserDetailsModal(user)}
+                      onClick={() => promoteToAdmin(user._id)}
+                      className="action-btn promote"
+                      title="Promote to Admin"
                     >
-                      👁️ View
+                      👑
                     </button>
-                    <select
-                      value={user.status || 'active'}
-                      onChange={(e) => updateUserStatus(user._id, e.target.value)}
-                      className="status-select"
-                      disabled={actionLoading}
-                    >
-                      {userStatuses.map(status => (
-                        <option key={status.value} value={status.value}>
-                          {status.label}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      className="delete-btn"
-                      onClick={() => deleteUser(user._id)}
-                      disabled={actionLoading}
-                    >
-                      🗑️
-                    </button>
-                  </div>
+                  )}
+                  <button
+                    onClick={() => deleteUser(user._id)}
+                    className="action-btn delete"
+                    title="Delete User"
+                  >
+                    🗑️
+                  </button>
                 </td>
               </tr>
             ))}
@@ -380,153 +321,15 @@ const UserManagement = () => {
         </table>
 
         {filteredUsers.length === 0 && (
-          <div className="no-users">
-            <p>No users found.</p>
+          <div className="no-results">
+            <p>No users found matching your criteria.</p>
           </div>
         )}
       </div>
 
-      {/* User Details Modal */}
-      {showUserDetails && selectedUser && (
-        <div className="modal-overlay" onClick={() => setShowUserDetails(false)}>
-          <div className="user-details-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>User Details</h3>
-              <button 
-                className="close-btn"
-                onClick={() => setShowUserDetails(false)}
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="modal-content">
-              <div className="user-profile-section">
-                <div className="profile-avatar">
-                  {selectedUser.firstName?.[0]?.toUpperCase()}{selectedUser.lastName?.[0]?.toUpperCase()}
-                </div>
-                <div className="profile-info">
-                  <h4>{selectedUser.firstName || ''} {selectedUser.lastName || ''}</h4>
-                  <p>{selectedUser.email}</p>
-                  <div className="profile-badges">
-                    <span 
-                      className="role-badge"
-                      style={{ backgroundColor: getRoleColor(selectedUser.role) }}
-                    >
-                      {getRoleLabel(selectedUser.role)}
-                    </span>
-                    <span 
-                      className="status-badge"
-                      style={{ backgroundColor: getStatusColor(selectedUser.status || 'active') }}
-                    >
-                      {getStatusLabel(selectedUser.status || 'active')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="user-info-section">
-                <h4>User Information</h4>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <label>User ID:</label>
-                    <span>{selectedUser._id}</span>
-                  </div>
-                  <div className="info-item">
-                    <label>Email:</label>
-                    <span>{selectedUser.email}</span>
-                  </div>
-                  <div className="info-item">
-                    <label>First Name:</label>
-                    <span>{selectedUser.firstName || 'Not provided'}</span>
-                  </div>
-                  <div className="info-item">
-                    <label>Last Name:</label>
-                    <span>{selectedUser.lastName || 'Not provided'}</span>
-                  </div>
-                  <div className="info-item">
-                    <label>Phone:</label>
-                    <span>{selectedUser.phone || 'Not provided'}</span>
-                  </div>
-                  <div className="info-item">
-                    <label>Date Joined:</label>
-                    <span>{formatDate(selectedUser.createdAt)}</span>
-                  </div>
-                  <div className="info-item">
-                    <label>Last Login:</label>
-                    <span>{selectedUser.lastLogin ? formatDate(selectedUser.lastLogin) : 'Never'}</span>
-                  </div>
-                  <div className="info-item">
-                    <label>Email Verified:</label>
-                    <span className={selectedUser.emailVerified ? 'verified' : 'not-verified'}>
-                      {selectedUser.emailVerified ? '✅ Verified' : '❌ Not Verified'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {selectedUser.address && (
-                <div className="address-section">
-                  <h4>Address Information</h4>
-                  <div className="address-info">
-                    <p>{selectedUser.address.street}</p>
-                    <p>{selectedUser.address.city}, {selectedUser.address.state} {selectedUser.address.zipCode}</p>
-                    <p>{selectedUser.address.country}</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="user-actions-section">
-                <h4>User Actions</h4>
-                <div className="action-controls">
-                  <div className="control-group">
-                    <label>Role:</label>
-                    <select
-                      value={selectedUser.role}
-                      onChange={(e) => updateUserRole(selectedUser._id, e.target.value)}
-                      className="role-select"
-                      disabled={actionLoading}
-                    >
-                      {userRoles.map(role => (
-                        <option key={role.value} value={role.value}>
-                          {role.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="control-group">
-                    <label>Status:</label>
-                    <select
-                      value={selectedUser.status || 'active'}
-                      onChange={(e) => updateUserStatus(selectedUser._id, e.target.value)}
-                      className="status-control-select"
-                      disabled={actionLoading}
-                    >
-                      {userStatuses.map(status => (
-                        <option key={status.value} value={status.value}>
-                          {status.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="danger-zone">
-                    <label>Danger Zone:</label>
-                    <button
-                      className="delete-user-btn"
-                      onClick={() => deleteUser(selectedUser._id)}
-                      disabled={actionLoading}
-                    >
-                      🗑️ Delete User
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="results-info">
+        Showing {filteredUsers.length} of {users.length} users
+      </div>
     </div>
   );
 };

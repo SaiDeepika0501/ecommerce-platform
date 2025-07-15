@@ -132,51 +132,8 @@ router.get('/', protect, admin, async (req, res) => {
   }
 });
 
-// Get all orders for admin panel (simplified route)
-router.get('/admin/all', protect, admin, async (req, res) => {
-  try {
-    const orders = await Order.find({})
-      .populate('user', 'email firstName lastName')
-      .populate('items.product', 'name images')
-      .sort({ createdAt: -1 });
-    
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
 // Update order status (admin only)
 router.put('/:id/status', protect, admin, async (req, res) => {
-  try {
-    const { status } = req.body;
-    
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    ).populate('items.product', 'name images');
-    
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-    
-    // Emit socket event for real-time updates
-    if (req.io) {
-      req.io.to(`user-${order.user}`).emit('order-status-updated', {
-        orderId: order._id,
-        status
-      });
-    }
-    
-    res.json(order);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Update order status (admin only) - PATCH version
-router.patch('/:id/status', protect, admin, async (req, res) => {
   try {
     const { status } = req.body;
     

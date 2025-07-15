@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import ProductManagement from './ProductManagement';
-import OrderManagement from './OrderManagement';
 import UserManagement from './UserManagement';
+import OrderManagement from './OrderManagement';
+import InventoryManagement from './InventoryManagement';
+import { formatINR } from './utils/currency';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('users'); // Start with users instead of overview
   const [stats, setStats] = useState({
-    totalProducts: 0,
     totalUsers: 0,
     totalOrders: 0,
-    totalRevenue: 0
+    totalRevenue: 0,
+    pendingOrders: 0,
+    totalProducts: 0,
+    lowStockCount: 0,
+    outOfStockCount: 0
   });
 
   useEffect(() => {
@@ -20,137 +24,129 @@ const AdminDashboard = () => {
   const fetchDashboardStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
-
-      // Fetch products count
-      const productsResponse = await fetch('http://localhost:5000/api/products', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const productsData = await productsResponse.json();
       
-      // Fetch orders count
-      const ordersResponse = await fetch('http://localhost:5000/api/orders/my-orders', {
-        headers: { Authorization: `Bearer ${token}` }
+      // Fetch users stats - correct endpoint
+      const usersResponse = await fetch('http://localhost:5000/api/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      const ordersData = await ordersResponse.json();
-
+      const users = usersResponse.ok ? await usersResponse.json() : [];
+      
+      // Fetch orders stats - correct endpoint
+      const ordersResponse = await fetch('http://localhost:5000/api/orders', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      let orders = [];
+      if (ordersResponse.ok) {
+        const orderData = await ordersResponse.json();
+        // Handle both array format and paginated format
+        orders = Array.isArray(orderData) ? orderData : (orderData.orders || []);
+      }
+      
+      // Fetch products stats - correct endpoint and handle pagination
+      const productsResponse = await fetch('http://localhost:5000/api/products?limit=1000'); // Get all products
+      let products = [];
+      if (productsResponse.ok) {
+        const productData = await productsResponse.json();
+        // Handle both array format and paginated format
+        products = Array.isArray(productData) ? productData : (productData.products || []);
+      }
+      
+      // Calculate stats
+      const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      const pendingOrders = orders.filter(order => order.status === 'pending').length;
+      const lowStockProducts = products.filter(product => {
+        const stock = product.stock || product.inventory?.quantity || 0;
+        const threshold = product.lowStockThreshold || product.inventory?.lowStockThreshold || 10;
+        return stock > 0 && stock <= threshold;
+      });
+      const outOfStockProducts = products.filter(product => {
+        const stock = product.stock || product.inventory?.quantity || 0;
+        return stock === 0;
+      });
+      
       setStats({
-        totalProducts: productsData.products?.length || 0,
-        totalUsers: 156, // Mock data
-        totalOrders: ordersData.length || 0,
-        totalRevenue: ordersData.reduce((sum, order) => sum + order.total, 0) || 0
+        totalUsers: users.length,
+        totalOrders: orders.length,
+        totalRevenue,
+        pendingOrders,
+        totalProducts: products.length,
+        lowStockCount: lowStockProducts.length,
+        outOfStockCount: outOfStockProducts.length
       });
     } catch (error) {
-      // Silently handle error in production
+      console.error('Error fetching dashboard stats:', error);
     }
   };
 
-  const renderActiveTab = () => {
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  };
+
+  const renderTabContent = () => {
     switch (activeTab) {
-      case 'products':
-        return <ProductManagement />;
-      case 'orders':
-        return <OrderManagement />;
       case 'users':
-        return <UserManagement />;
+        return <UserManagement stats={stats} onRefresh={fetchDashboardStats} />;
+      case 'orders':
+        return <OrderManagement stats={stats} onRefresh={fetchDashboardStats} />;
+      case 'inventory':
+        return <InventoryManagement stats={stats} onRefresh={fetchDashboardStats} />;
       default:
-        return <DashboardOverview stats={stats} />;
+        return <UserManagement stats={stats} onRefresh={fetchDashboardStats} />;
     }
   };
 
   return (
     <div className="admin-dashboard">
-      <div className="admin-sidebar">
-        <div className="admin-header">
-          <h2>Admin Panel</h2>
+      <div className="dashboard-header">
+        <h1>Admin Dashboard</h1>
+        <div className="admin-info">
+          <span>Welcome, Admin</span>
+          <button className="refresh-dashboard" onClick={fetchDashboardStats}>
+            🔄 Refresh
+          </button>
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
-        <nav className="admin-nav">
-          <button 
-            className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            📊 Dashboard
-          </button>
-          <button 
-            className={`nav-item ${activeTab === 'products' ? 'active' : ''}`}
-            onClick={() => setActiveTab('products')}
-          >
-            📦 Products
-          </button>
-          <button 
-            className={`nav-item ${activeTab === 'orders' ? 'active' : ''}`}
-            onClick={() => setActiveTab('orders')}
-          >
-            📋 Orders
-          </button>
-          <button 
-            className={`nav-item ${activeTab === 'users' ? 'active' : ''}`}
-            onClick={() => setActiveTab('users')}
-          >
-            👥 Users
-          </button>
-        </nav>
       </div>
-      <div className="admin-content">
-        {renderActiveTab()}
+
+      <div className="dashboard-tabs">
+        <button 
+          className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          👥 Users Management
+          <span className="tab-badge">{stats.totalUsers}</span>
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
+          onClick={() => setActiveTab('orders')}
+        >
+          📋 Orders Management
+          <span className="tab-badge">{stats.totalOrders}</span>
+          {stats.pendingOrders > 0 && (
+            <span className="alert-badge">{stats.pendingOrders}</span>
+          )}
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
+          onClick={() => setActiveTab('inventory')}
+        >
+          📦 Inventory Management
+          <span className="tab-badge">{stats.totalProducts}</span>
+          {stats.lowStockCount > 0 && (
+            <span className="warning-badge">{stats.lowStockCount}</span>
+          )}
+        </button>
+      </div>
+
+      <div className="tab-content">
+        {renderTabContent()}
       </div>
     </div>
   );
 };
-
-const DashboardOverview = ({ stats }) => (
-  <div className="dashboard-overview">
-    <h1>Dashboard Overview</h1>
-    <div className="stats-grid">
-      <div className="stat-card">
-        <div className="stat-icon">📦</div>
-        <div className="stat-content">
-          <div className="stat-number">{stats.totalProducts}</div>
-          <div className="stat-label">Total Products</div>
-        </div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-icon">👥</div>
-        <div className="stat-content">
-          <div className="stat-number">{stats.totalUsers}</div>
-          <div className="stat-label">Total Users</div>
-        </div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-icon">📋</div>
-        <div className="stat-content">
-          <div className="stat-number">{stats.totalOrders}</div>
-          <div className="stat-label">Total Orders</div>
-        </div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-icon">💰</div>
-        <div className="stat-content">
-          <div className="stat-number">${stats.totalRevenue.toFixed(2)}</div>
-          <div className="stat-label">Total Revenue</div>
-        </div>
-      </div>
-    </div>
-    <div className="recent-activity">
-      <h2>Recent Activity</h2>
-      <div className="activity-list">
-        <div className="activity-item">
-          <span className="activity-time">2 hours ago</span>
-          <span className="activity-text">New order #1001 received</span>
-        </div>
-        <div className="activity-item">
-          <span className="activity-time">4 hours ago</span>
-          <span className="activity-text">Product inventory updated</span>
-        </div>
-        <div className="activity-item">
-          <span className="activity-time">6 hours ago</span>
-          <span className="activity-text">New user registered</span>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-
 
 export default AdminDashboard; 

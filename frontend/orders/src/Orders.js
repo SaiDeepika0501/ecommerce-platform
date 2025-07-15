@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { formatINR } from './utils/currency';
 import './Orders.css';
 
 const Orders = () => {
@@ -22,13 +23,15 @@ const Orders = () => {
         return;
       }
 
-      const response = await axios.get('http://localhost:5000/api/orders', {
+      const response = await axios.get('http://localhost:5000/api/orders/my-orders', {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
       
-      setOrders(response.data);
+      // Ensure response.data is an array
+      const ordersData = Array.isArray(response.data) ? response.data : [];
+      setOrders(ordersData);
     } catch (error) {
       console.error('Error fetching orders:', error);
       setError(error.response?.data?.message || 'Failed to fetch orders');
@@ -141,10 +144,10 @@ const Orders = () => {
                     <div className="item-info">
                       <h4>{item.name}</h4>
                       <p>Quantity: {item.quantity}</p>
-                      <p className="item-price">${item.price.toFixed(2)} each</p>
+                      <p className="item-price">{formatINR(item.price)} each</p>
                     </div>
                     <div className="item-total">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      {formatINR(item.price * item.quantity)}
                     </div>
                   </div>
                 ))}
@@ -154,7 +157,7 @@ const Orders = () => {
                 <div className="order-details">
                   <div className="detail-item">
                     <span className="detail-label">Total:</span>
-                    <span className="detail-value">${order.totalAmount.toFixed(2)}</span>
+                    <span className="detail-value">{formatINR(order.totalAmount)}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Payment:</span>

@@ -50,9 +50,8 @@ A scalable e-commerce platform built with micro-frontends architecture using Rea
 
 ### Prerequisites
 - Node.js (v16 or higher)
-- MongoDB (local, Docker, or cloud instance)
+- MongoDB (local or cloud instance)
 - npm or yarn
-- Docker (optional, for easy MongoDB setup)
 
 ### Quick Start
 
@@ -62,71 +61,30 @@ A scalable e-commerce platform built with micro-frontends architecture using Rea
    cd ecommerce-platform
    ```
 
-2. **Run the automated setup script**
-   ```bash
-   chmod +x start-application.sh
-   ./start-application.sh
-   ```
-   
-   The script will:
-   - Install all dependencies
-   - Set up environment variables
-   - Optionally start MongoDB in Docker
-   - Start all services
-   - Create sample data automatically
-
-### Manual Setup
-
-1. **Install dependencies**
+2. **Install dependencies**
    ```bash
    npm install
    npm run install-all
    ```
-
-2. **Set up MongoDB** (Choose one option):
-
-   **Option A: Docker (Recommended for development)**
-   ```bash
-   docker run -d -p 27017:27017 --name ecommerce-mongodb \
-     -e MONGO_INITDB_ROOT_USERNAME=admin \
-     -e MONGO_INITDB_ROOT_PASSWORD=password123 mongo
-   ```
-
-   **Option B: Local MongoDB**
-   ```bash
-   brew install mongodb/brew/mongodb-community
-   brew services start mongodb/brew/mongodb-community
-   ```
-
-   **Option C: MongoDB Atlas (Cloud)**
-   - Create account at https://www.mongodb.com/cloud/atlas
-   - Create a free cluster
-   - Get connection string
 
 3. **Set up environment variables**
    Create a `.env` file in the `backend` directory:
    ```env
    NODE_ENV=development
    PORT=5000
+   MONGODB_URI=mongodb://localhost:27017/ecommerce
    JWT_SECRET=your-secret-key-here
-   
-   # Choose one database connection:
-   # Local MongoDB
-   # MONGODB_URI=mongodb://localhost:27017/ecommerce
-   
-   # Docker MongoDB
-   MONGODB_URI=mongodb://admin:password123@localhost:27017/ecommerce?authSource=admin
-   
-   # MongoDB Atlas
-   # MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ecommerce
    ```
 
-4. **Start all services**
+4. **Seed sample data**
+   ```bash
+   npm run seed
+   ```
+
+5. **Start all services**
    ```bash
    npm run start-all
    ```
-
-   Sample data will be created automatically when the backend connects to MongoDB.
 
 ### Individual Service Setup
 
@@ -270,96 +228,6 @@ The seed script creates:
 - 5 sample products across different categories
 - Admin and customer user accounts
 - Product inventory with different stock levels
-
-### Quick Health Check
-```bash
-# Check if backend is running
-curl http://localhost:5000/health
-
-# Test login endpoint
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@example.com", "password": "password123"}'
-```
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-#### Backend Server Exits After Starting
-**Issue**: Server starts, shows "Sample data seeded successfully" then exits.
-**Solution**: This was a known issue that has been fixed. The server now continues running after seeding.
-
-#### Port Already in Use
-**Issue**: `Error: listen EADDRINUSE: address already in use`
-**Solution**: 
-```bash
-# Kill processes on specific ports
-lsof -ti:3000,3001,3002,3003,5000 | xargs kill -9
-
-# Or use the cleanup in start script
-./start-application.sh  # It handles cleanup automatically
-```
-
-#### MongoDB Connection Issues
-**Issue**: `MongooseServerSelectionError: connect ECONNREFUSED`
-**Solutions**:
-1. **Check if MongoDB is running**:
-   ```bash
-   # For local MongoDB
-   brew services list | grep mongodb
-   
-   # For Docker MongoDB
-   docker ps | grep mongo
-   ```
-
-2. **Start MongoDB**:
-   ```bash
-   # Local MongoDB
-   brew services start mongodb/brew/mongodb-community
-   
-   # Docker MongoDB
-   docker start ecommerce-mongodb
-   ```
-
-3. **Check connection string** in `backend/.env`
-
-#### Frontend Services Won't Start
-**Issue**: Webpack compilation errors or module not found
-**Solutions**:
-1. **Clear node_modules and reinstall**:
-   ```bash
-   rm -rf node_modules frontend/*/node_modules
-   npm install
-   npm run install-all
-   ```
-
-2. **Check for missing dependencies**:
-   ```bash
-   cd frontend/users
-   npm install @module-federation/webpack
-   ```
-
-#### Login Failed Error
-**Issue**: Login returns error even with correct credentials
-**Solution**: Ensure backend is running and connected to MongoDB. Check `http://localhost:5000/health`
-
-### Reset Everything
-If you encounter persistent issues:
-```bash
-# Stop all services
-pkill -f "node\|nodemon\|webpack"
-
-# Remove all dependencies
-rm -rf node_modules frontend/*/node_modules
-
-# Remove Docker containers (if using Docker MongoDB)
-docker stop ecommerce-mongodb
-docker rm ecommerce-mongodb
-
-# Start fresh
-./start-application.sh
-```
 
 ## 📊 Performance & Scalability
 

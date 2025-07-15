@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { formatINR } from '../utils/currency';
 import './Orders.css';
 
 const Orders = () => {
@@ -175,7 +176,7 @@ const Orders = () => {
                         <div className="item-details">
                           <p className="item-name">{item.name}</p>
                           <p className="item-quantity">Qty: {item.quantity}</p>
-                          <p className="item-price">${item.price}</p>
+                          <p className="item-price">{formatINR(item.price)}</p>
                         </div>
                       </div>
                     ))}
@@ -185,7 +186,7 @@ const Orders = () => {
                 <div className="order-summary">
                   <div className="summary-row">
                     <span>Subtotal:</span>
-                    <span>${order.totalAmount.toFixed(2)}</span>
+                    <span>{formatINR(order.totalAmount)}</span>
                   </div>
                   <div className="summary-row">
                     <span>Shipping:</span>
@@ -193,7 +194,7 @@ const Orders = () => {
                   </div>
                   <div className="summary-row total">
                     <span>Total:</span>
-                    <span>${order.totalAmount.toFixed(2)}</span>
+                    <span>{formatINR(order.totalAmount)}</span>
                   </div>
                 </div>
               </div>

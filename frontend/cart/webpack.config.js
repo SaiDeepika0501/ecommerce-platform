@@ -5,36 +5,8 @@ module.exports = {
   mode: 'development',
   devServer: {
     port: 3002,
-    hot: true,
-    liveReload: true,
-    allowedHosts: 'all',
-    host: '0.0.0.0',
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization'
-    },
-    client: {
-      overlay: {
-        errors: true,
-        warnings: false,
-        runtimeErrors: true,
-      },
-      logging: 'error',
-    },
-    setupExitSignals: false,
-  },
-  optimization: {
-    splitChunks: {
-      chunks: 'all',
-      cacheGroups: {
-        vendor: {
-          test: /[\\/]node_modules[\\/]/,
-          name: 'vendors',
-          chunks: 'all',
-          enforce: true,
-        },
-      },
     },
   },
   plugins: [
@@ -45,56 +17,32 @@ module.exports = {
         './Cart': './src/Cart',
       },
       shared: {
-        react: { 
-          singleton: true, 
-          requiredVersion: '^18.2.0',
-          eager: true,
-          strictVersion: false
-        },
-        'react-dom': { 
-          singleton: true, 
-          requiredVersion: '^18.2.0',
-          eager: true,
-          strictVersion: false
-        },
-        'react-router-dom': {
+        react: {
           singleton: true,
-          requiredVersion: '^6.3.0',
-          eager: true,
-          strictVersion: false
+          requiredVersion: '^18.2.0',
+        },
+        'react-dom': {
+          singleton: true,
+          requiredVersion: '^18.2.0',
         },
         axios: {
           singleton: true,
           requiredVersion: '^1.4.0',
-          eager: true,
-          strictVersion: false
         },
-      }
+      },
     }),
     new HtmlWebpackPlugin({
-      template: './public/index.html'
+      template: './public/index.html',
     }),
   ],
-  resolve: {
-    extensions: ['.js', '.jsx', '.ts', '.tsx'],
-  },
   module: {
     rules: [
       {
-        test: /\.m?js$/,
-        type: 'javascript/auto',
-        resolve: {
-          fullySpecified: false,
-        },
-      },
-      {
-        test: /\.(js|jsx)$/,
+        test: /\.jsx?$/,
+        loader: 'babel-loader',
         exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-react'],
-          },
+        options: {
+          presets: ['@babel/preset-react'],
         },
       },
       {

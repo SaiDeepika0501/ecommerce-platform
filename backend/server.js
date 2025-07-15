@@ -25,16 +25,22 @@ const io = new Server(server, {
   }
 });
 
-// Rate limiting
+// Rate limiting - More permissive for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 1000 requests for dev, 100 for production
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+    retryAfter: '15 minutes'
+  }
 });
 
 // Middleware
 app.use(helmet());
 app.use(compression());
-app.use(limiter);
+
+// Apply rate limiting only to API routes (skip for health checks)
+app.use('/api', limiter);
 app.use(cors({
   origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:3004"],
   credentials: true
@@ -42,23 +48,80 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB Connection
+// MongoDB Connection with better error handling
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce';
+let isMongoConnected = false;
 
-mongoose.connect(MONGODB_URI)
-  .then(async () => {
+// Configure mongoose to handle connection issues gracefully
+mongoose.set('strictQuery', false);
+
+const connectToMongoDB = async () => {
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+      retryWrites: true,
+      w: 'majority'
+    });
+    
+    console.log('✅ Connected to MongoDB');
+    isMongoConnected = true;
+    
     // Seed database if needed
-    if (process.env.NODE_ENV === 'development' && process.env.AUTO_SEED === 'true') {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🌱 Seeding database...');
       const seedData = require('./scripts/seed');
       await seedData();
     }
-  })
-  .catch((error) => {
-    // Log error but continue running for frontend testing
-    if (process.env.NODE_ENV === 'development') {
-      // Continue running without database for frontend testing
-    }
-  });
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error.message);
+    console.log('\n🔧 Database Setup Options:');
+    console.log('1. MongoDB Atlas (Free): https://www.mongodb.com/cloud/atlas');
+    console.log('2. Local MongoDB: brew install mongodb/brew/mongodb-community');
+    console.log('3. Docker: docker run -d -p 27017:27017 mongo');
+    console.log('\n📝 Set MONGODB_URI environment variable for custom connection string');
+    console.log('\n⚠️  Server continuing without database connection for frontend testing');
+    isMongoConnected = false;
+  }
+};
+
+// Handle MongoDB connection events
+mongoose.connection.on('connected', () => {
+  console.log('📀 Mongoose connected to MongoDB');
+  isMongoConnected = true;
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ Mongoose connection error:', err.message);
+  isMongoConnected = false;
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('💔 Mongoose disconnected from MongoDB');
+  isMongoConnected = false;
+  
+  // Try to reconnect after 5 seconds
+  setTimeout(() => {
+    console.log('🔄 Attempting to reconnect to MongoDB...');
+    connectToMongoDB();
+  }, 5000);
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  try {
+    await mongoose.connection.close();
+    console.log('🔒 MongoDB connection closed through app termination');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
+});
+
+// Initial connection attempt
+connectToMongoDB();
 
 // Socket.IO for real-time features
 io.on('connection', (socket) => {
@@ -77,9 +140,28 @@ io.on('connection', (socket) => {
   });
 });
 
-// Make io accessible to routes
+// Make io accessible to routes and add MongoDB status
 app.use((req, res, next) => {
   req.io = io;
+  req.isMongoConnected = isMongoConnected;
+  next();
+});
+
+// Middleware to handle requests when MongoDB is down
+app.use((req, res, next) => {
+  // Allow health check and basic routes even without MongoDB
+  if (req.path === '/health' || req.path === '/' || req.path.startsWith('/api/health')) {
+    return next();
+  }
+  
+  // For API routes, add MongoDB status info
+  if (req.path.startsWith('/api/') && !isMongoConnected) {
+    // Allow some routes to work without MongoDB for testing
+    if (req.path.includes('/auth') || req.path.includes('/products')) {
+      req.mockMode = true;
+    }
+  }
+  
   next();
 });
 
@@ -93,21 +175,75 @@ app.use('/api/inventory', inventoryRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    mongodb: isMongoConnected ? 'connected' : 'disconnected',
+    uptime: process.uptime()
+  });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'E-commerce Backend API',
+    status: 'running',
+    mongodb: isMongoConnected ? 'connected' : 'disconnected',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      products: '/api/products',
+      users: '/api/users',
+      cart: '/api/cart',
+      orders: '/api/orders'
+    }
+  });
 });
 
 // Error handling
 app.use((err, req, res, next) => {
-  if (process.env.NODE_ENV === 'development') {
-    res.status(500).json({ error: 'Something went wrong!', details: err.message });
-  } else {
-    res.status(500).json({ error: 'Something went wrong!' });
+  console.error('❌ Server error:', err.message);
+  
+  // Handle specific MongoDB errors
+  if (err.name === 'MongoNetworkError' || err.name === 'MongooseServerSelectionError') {
+    return res.status(503).json({ 
+      error: 'Database temporarily unavailable',
+      mongodb: false,
+      message: 'Please try again later'
+    });
   }
+  
+  // Handle validation errors
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ 
+      error: 'Validation failed',
+      details: err.message
+    });
+  }
+  
+  res.status(500).json({ 
+    error: 'Internal server error',
+    mongodb: isMongoConnected,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error.message);
+  console.error(error.stack);
+  // Don't exit the process, just log the error
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit the process, just log the error
 });
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  // Server started successfully
+  console.log(`Server running on port ${PORT}`);
 });
 
 module.exports = { app, server, io }; 

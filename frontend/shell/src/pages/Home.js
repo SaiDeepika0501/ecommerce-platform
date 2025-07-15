@@ -48,16 +48,39 @@ const Home = () => {
             )}
           </div>
           
-          <div className="feature-card">
-            <h3>⚡ Real-time Updates</h3>
-            <p>Live inventory tracking and order status updates using WebSocket connections</p>
-          </div>
-          
-          <div className="feature-card">
-            <h3>🔌 IoT Integration</h3>
-            <p>Ready for integration with IoT devices for automated inventory management</p>
-          </div>
+          {isAuthenticated && (
+            <div className="feature-card">
+              <h3>👤 User Profile</h3>
+              <p>Manage your personal information, addresses, and account preferences</p>
+              <Link to="/profile" className="btn btn-primary">My Profile</Link>
+            </div>
+          )}
         </div>
+
+        {isAuthenticated && (
+          <div className="admin-section">
+            <div className="feature-card admin-feature">
+              <h3>⚙️ Admin Portal</h3>
+              <p>Comprehensive administration tools for managing users, orders, inventory, and business analytics</p>
+              <div className="admin-features">
+                <div className="admin-feature-item">
+                  <strong>👥 User Management:</strong> View, edit, and manage user accounts and permissions
+                </div>
+                <div className="admin-feature-item">
+                  <strong>📦 Order Management:</strong> Process orders, update status, and handle customer requests
+                </div>
+                <div className="admin-feature-item">
+                  <strong>📊 Analytics Dashboard:</strong> Monitor sales performance, user activity, and business metrics
+                </div>
+              </div>
+              <div className="admin-access">
+                <p><strong>Admin Access Required</strong></p>
+                <p className="demo-info">Demo Admin: admin@example.com / password123</p>
+                <Link to="/admin" className="btn btn-admin">Access Admin Portal</Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="tech-stack">
           <h2>Built with Modern Technologies</h2>

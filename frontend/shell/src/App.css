@@ -31,23 +31,24 @@ body {
   padding: 0 20px;
 }
 
-/* Loading states */
+/* Loading spinner */
 .loading-spinner {
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  height: 100vh;
-  background-color: #fff;
+  align-items: center;
+  height: 50vh;
+  text-align: center;
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
   border: 4px solid #f3f3f3;
   border-top: 4px solid #007bff;
   border-radius: 50%;
+  width: 50px;
+  height: 50px;
   animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
 }
 
 @keyframes spin {
@@ -57,21 +58,71 @@ body {
 
 .loading {
   text-align: center;
-  padding: 50px;
-  font-size: 18px;
+  padding: 2rem;
   color: #666;
+}
+
+/* Access Denied Page */
+.access-denied {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.access-denied-content {
+  background: white;
+  padding: 3rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 500px;
+  margin: 2rem;
+}
+
+.access-denied h1 {
+  color: #dc3545;
+  margin-bottom: 1rem;
+  font-size: 2.5rem;
+}
+
+.access-denied p {
+  color: #666;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.demo-info {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  border-left: 4px solid #007bff;
+}
+
+.demo-info strong {
+  color: #007bff;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
 }
 
 /* Button styles */
 .btn {
-  padding: 10px 20px;
+  padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
+  font-weight: 500;
   text-decoration: none;
   display: inline-block;
+  cursor: pointer;
   transition: all 0.3s ease;
+  font-size: 1rem;
 }
 
 .btn-primary {
@@ -81,12 +132,15 @@ body {
 
 .btn-primary:hover {
   background-color: #0056b3;
+  transform: translateY(-2px);
+  color: white;
+  text-decoration: none;
 }
 
 .btn-outline {
   background-color: transparent;
-  color: #007bff;
   border: 2px solid #007bff;
+  color: #007bff;
 }
 
 .btn-outline:hover {

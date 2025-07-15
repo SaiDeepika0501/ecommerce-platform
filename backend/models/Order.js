@@ -8,7 +8,8 @@ const orderSchema = new mongoose.Schema({
   },
   orderNumber: {
     type: String,
-    unique: true
+    unique: true,
+    required: true
   },
   items: [{
     product: {
@@ -59,8 +60,8 @@ const orderSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate order number before saving
-orderSchema.pre('save', function(next) {
+// Generate order number before validation (not just before saving)
+orderSchema.pre('validate', function(next) {
   if (!this.orderNumber) {
     this.orderNumber = 'ORD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
   }

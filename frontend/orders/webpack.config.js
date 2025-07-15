@@ -4,7 +4,7 @@ const { ModuleFederationPlugin } = require('webpack').container;
 module.exports = {
   mode: 'development',
   devServer: {
-    port: 3005,
+    port: 3004,
     hot: true,
     liveReload: true,
     allowedHosts: 'all',

@@ -7,14 +7,6 @@ const userSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  firstName: {
-    type: String,
-    trim: true
-  },
-  lastName: {
-    type: String,
-    trim: true
-  },
   email: {
     type: String,
     required: true,
@@ -29,13 +21,8 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['customer', 'admin', 'moderator'],
+    enum: ['customer', 'admin'],
     default: 'customer'
-  },
-  status: {
-    type: String,
-    enum: ['active', 'inactive', 'suspended'],
-    default: 'active'
   },
   address: {
     street: String,
@@ -45,13 +32,6 @@ const userSchema = new mongoose.Schema({
     country: String
   },
   phone: String,
-  emailVerified: {
-    type: Boolean,
-    default: false
-  },
-  lastLogin: {
-    type: Date
-  },
   isActive: {
     type: Boolean,
     default: true

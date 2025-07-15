@@ -30,9 +30,12 @@ export const AuthProvider = ({ children }) => {
   const fetchUserProfile = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/auth/profile');
-      setUser(response.data);
+      const userData = response.data;
+      // Add isAdmin flag based on role
+      userData.isAdmin = userData.role === 'admin';
+      setUser(userData);
     } catch (error) {
-              // Error fetching user profile
+      console.error('Error fetching user profile:', error);
       logout();
     } finally {
       setLoading(false);
@@ -47,6 +50,8 @@ export const AuthProvider = ({ children }) => {
       });
       
       const { token, ...userData } = response.data;
+      // Add isAdmin flag based on role
+      userData.isAdmin = userData.role === 'admin';
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(userData);
@@ -69,6 +74,8 @@ export const AuthProvider = ({ children }) => {
       });
       
       const { token, ...userData } = response.data;
+      // Add isAdmin flag based on role
+      userData.isAdmin = userData.role === 'admin';
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(userData);

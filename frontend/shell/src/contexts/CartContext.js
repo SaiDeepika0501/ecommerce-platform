@@ -34,7 +34,7 @@ export const CartProvider = ({ children }) => {
       const response = await axios.get('http://localhost:5000/api/cart');
       setCart(response.data);
     } catch (error) {
-              // Error fetching cart
+      console.error('Error fetching cart:', error);
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export const CartProvider = ({ children }) => {
       });
       setCart(response.data);
     } catch (error) {
-              // Error updating cart item
+      console.error('Error updating cart item:', error);
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export const CartProvider = ({ children }) => {
       const response = await axios.delete(`http://localhost:5000/api/cart/remove/${itemId}`);
       setCart(response.data);
     } catch (error) {
-              // Error removing item from cart
+      console.error('Error removing item from cart:', error);
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,7 @@ export const CartProvider = ({ children }) => {
       await axios.delete('http://localhost:5000/api/cart/clear');
       setCart({ items: [], totalAmount: 0 });
     } catch (error) {
-              // Error clearing cart
+      console.error('Error clearing cart:', error);
     } finally {
       setLoading(false);
     }

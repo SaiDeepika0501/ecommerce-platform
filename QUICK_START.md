@@ -43,18 +43,7 @@ start-application.bat
 
 The application will run without a database for frontend testing. For full functionality:
 
-### Option 1: Docker MongoDB (Recommended - Fastest Setup)
-```bash
-# Start MongoDB with authentication
-docker run -d -p 27017:27017 --name ecommerce-mongodb \
-  -e MONGO_INITDB_ROOT_USERNAME=admin \
-  -e MONGO_INITDB_ROOT_PASSWORD=password123 mongo
-
-# Update backend/.env with:
-MONGODB_URI=mongodb://admin:password123@localhost:27017/ecommerce?authSource=admin
-```
-
-### Option 2: MongoDB Atlas (Cloud - Free)
+### Option 1: MongoDB Atlas (Recommended - Free)
 1. Go to https://www.mongodb.com/cloud/atlas
 2. Create a free account and cluster
 3. Copy your connection string
@@ -63,10 +52,15 @@ MONGODB_URI=mongodb://admin:password123@localhost:27017/ecommerce?authSource=adm
    MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ecommerce
    ```
 
-### Option 3: Local MongoDB
+### Option 2: Local MongoDB
 ```bash
 brew install mongodb/brew/mongodb-community
 brew services start mongodb/brew/mongodb-community
+```
+
+### Option 3: Docker
+```bash
+docker run -d -p 27017:27017 --name mongodb mongo
 ```
 
 ## Test Accounts
@@ -138,35 +132,10 @@ cd frontend/users && npm start
 4. **Set up** database connection for full features
 5. **Explore** individual micro-frontend services
 
-## Recent Improvements ✅
-
-- **✅ Fixed Backend Seeding Issue**: Server no longer exits after creating sample data
-- **✅ Added Docker MongoDB Support**: Easy one-command MongoDB setup with authentication
-- **✅ Enhanced Start Script**: Better error handling and automatic port cleanup
-- **✅ Improved Dependencies**: Auto-installation of missing modules like @module-federation/webpack
-- **✅ Better Documentation**: Added troubleshooting guide and health checks
-
-## Quick Health Checks
-
-```bash
-# Test if backend is running
-curl http://localhost:5000/health
-
-# Test authentication
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@example.com", "password": "password123"}'
-
-# Check MongoDB connection (if using Docker)
-docker ps | grep mongo
-```
-
 ## Support
 
 If you encounter issues:
 1. Check the console output for error messages
 2. Verify all prerequisites are installed
 3. Ensure no other services are using the required ports
-4. Try the health checks above to diagnose issues
-5. Check the troubleshooting section in README.md
-6. Try the manual startup method as a fallback 
+4. Try the manual startup method as a fallback 

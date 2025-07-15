@@ -7,6 +7,7 @@ const seedData = async () => {
   try {
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce');
+    console.log('Connected to MongoDB');
 
     // Clear existing data
     await User.deleteMany({});
@@ -31,9 +32,9 @@ const seedData = async () => {
     // Create sample products
     const products = [
       {
-        name: 'Wireless Headphones',
-        description: 'High-quality wireless headphones with noise cancellation',
-        price: 199.99,
+        name: 'Wireless Bluetooth Headphones',
+        description: 'High-quality wireless headphones with noise cancellation and 30-hour battery life.',
+        price: 16599, // ₹16,599 (converted from $199.99)
         category: 'Electronics',
         inventory: {
           quantity: 50,
@@ -41,112 +42,120 @@ const seedData = async () => {
           sku: 'WH001'
         },
         images: [
-          { url: '/images/headphones1.jpg', alt: 'Wireless Headphones' }
+          { url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500', alt: 'Wireless Headphones' },
+          { url: 'https://images.unsplash.com/photo-1484704849700-f032a568e944?w=500', alt: 'Wireless Headphones' }
         ],
-        tags: ['electronics', 'audio', 'wireless'],
-        specifications: new Map([
-          ['Battery Life', '30 hours'],
-          ['Connectivity', 'Bluetooth 5.0'],
-          ['Weight', '250g']
-        ])
+        tags: ['wireless', 'bluetooth', 'headphones', 'audio'],
+        specifications: {
+          'Battery Life': '30 hours',
+          'Connectivity': 'Bluetooth 5.0',
+          'Weight': '250g',
+          'Color': 'Black'
+        }
       },
       {
-        name: 'Smart Watch',
-        description: 'Advanced fitness tracking smartwatch with heart rate monitor',
-        price: 299.99,
-        category: 'Electronics',
-        inventory: {
-          quantity: 30,
-          lowStockThreshold: 5,
-          sku: 'SW001'
-        },
-        images: [
-          { url: '/images/smartwatch1.jpg', alt: 'Smart Watch' }
-        ],
-        tags: ['electronics', 'fitness', 'wearable'],
-        specifications: new Map([
-          ['Display', '1.4 inch OLED'],
-          ['Battery Life', '7 days'],
-          ['Water Resistance', 'IP68']
-        ])
-      },
-      {
-        name: 'Organic Cotton T-Shirt',
-        description: 'Comfortable organic cotton t-shirt, sustainably made',
-        price: 29.99,
-        category: 'Clothing',
+        name: 'Premium Coffee Beans',
+        description: 'Organic, fair-trade coffee beans roasted to perfection. Single origin from Colombian highlands.',
+        price: 2490, // ₹2,490 (converted from $29.99)
+        category: 'Food & Beverages',
         inventory: {
           quantity: 100,
           lowStockThreshold: 20,
-          sku: 'TS001'
+          sku: 'SW001'
         },
         images: [
-          { url: '/images/tshirt1.jpg', alt: 'Organic Cotton T-Shirt' }
+          { url: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500', alt: 'Smart Watch' },
+          { url: 'https://images.unsplash.com/photo-1610889556528-9a770e32642f?w=500', alt: 'Smart Watch' }
         ],
-        tags: ['clothing', 'organic', 'sustainable'],
-        specifications: new Map([
-          ['Material', '100% Organic Cotton'],
-          ['Fit', 'Regular'],
-          ['Care', 'Machine washable']
-        ])
+        tags: ['coffee', 'organic', 'fair-trade', 'premium'],
+        specifications: {
+          'Origin': 'Colombia',
+          'Roast Level': 'Medium',
+          'Weight': '1kg',
+          'Processing': 'Washed'
+        }
       },
       {
-        name: 'Yoga Mat',
-        description: 'Premium non-slip yoga mat for all types of practice',
-        price: 49.99,
-        category: 'Sports',
-        inventory: {
-          quantity: 75,
-          lowStockThreshold: 15,
-          sku: 'YM001'
-        },
-        images: [
-          { url: '/images/yogamat1.jpg', alt: 'Yoga Mat' }
-        ],
-        tags: ['sports', 'fitness', 'yoga'],
-        specifications: new Map([
-          ['Thickness', '6mm'],
-          ['Material', 'TPE'],
-          ['Size', '183cm x 61cm']
-        ])
-      },
-      {
-        name: 'Coffee Maker',
-        description: 'Programmable coffee maker with thermal carafe',
-        price: 89.99,
-        category: 'Home',
+        name: 'Ergonomic Office Chair',
+        description: 'Comfortable ergonomic office chair with lumbar support and adjustable height.',
+        price: 24899, // ₹24,899 (converted from $299.99)
+        category: 'Furniture',
         inventory: {
           quantity: 25,
           lowStockThreshold: 5,
           sku: 'CM001'
         },
         images: [
-          { url: '/images/coffeemaker1.jpg', alt: 'Coffee Maker' }
+          { url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500', alt: 'Coffee Maker' },
+          { url: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=500', alt: 'Coffee Maker' }
         ],
-        tags: ['home', 'kitchen', 'coffee'],
-        specifications: new Map([
-          ['Capacity', '12 cups'],
-          ['Features', 'Programmable, Auto-shutoff'],
-          ['Carafe', 'Thermal stainless steel']
-        ])
+        tags: ['office', 'chair', 'ergonomic', 'furniture'],
+        specifications: {
+          'Material': 'Mesh and fabric',
+          'Weight Capacity': '150kg',
+          'Dimensions': '65x65x110cm',
+          'Warranty': '5 years'
+        }
+      },
+      {
+        name: 'Smartphone Cases Set',
+        description: 'Protective smartphone cases compatible with latest models. Pack of 3 different colors.',
+        price: 4149, // ₹4,149 (converted from $49.99)
+        category: 'Accessories',
+        inventory: {
+          quantity: 200,
+          lowStockThreshold: 40,
+          sku: 'TS001'
+        },
+        images: [
+          { url: 'https://images.unsplash.com/photo-1601593346740-925612772716?w=500', alt: 'Organic Cotton T-Shirt' },
+          { url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=500', alt: 'Organic Cotton T-Shirt' }
+        ],
+        tags: ['smartphone', 'case', 'protection', 'accessories'],
+        specifications: {
+          'Material': 'TPU and PC',
+          'Colors': 'Black, Blue, Clear',
+          'Compatibility': 'Multiple models',
+          'Drop Protection': 'Up to 2m'
+        }
+      },
+      {
+        name: 'Yoga Mat Premium',
+        description: 'Non-slip yoga mat made from eco-friendly materials. Perfect for home workouts.',
+        price: 7459, // ₹7,459 (converted from $89.99)
+        category: 'Sports & Fitness',
+        inventory: {
+          quantity: 75,
+          lowStockThreshold: 15,
+          sku: 'YM001'
+        },
+        images: [
+          { url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500', alt: 'Yoga Mat' },
+          { url: 'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=500', alt: 'Yoga Mat' }
+        ],
+        tags: ['yoga', 'fitness', 'exercise', 'eco-friendly'],
+        specifications: {
+          'Material': 'Natural rubber',
+          'Thickness': '6mm',
+          'Dimensions': '183x61cm',
+          'Weight': '2.5kg'
+        }
       }
     ];
 
     await Product.insertMany(products);
 
-    // Only log in development mode when run directly
-    if (require.main === module && process.env.NODE_ENV === 'development') {
-      // Seeding completed successfully
-    }
+    console.log('Sample data seeded successfully');
+    console.log(`Created ${products.length} products`);
+    console.log('Admin user: admin@example.com / password123');
+    console.log('Customer user: john@example.com / password123');
 
     // Only exit if this script is run directly, not when required by server
     if (require.main === module) {
       process.exit(0);
     }
   } catch (error) {
-    if (require.main === module && process.env.NODE_ENV === 'development') {
-      // Error seeding data
-    }
+    console.error('Error seeding data:', error);
     if (require.main === module) {
       process.exit(1);
     }
