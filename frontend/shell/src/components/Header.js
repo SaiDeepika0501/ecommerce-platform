@@ -28,7 +28,7 @@ const Header = () => {
               <>
                 <Link to="/orders" className="nav-link">Orders</Link>
                 <Link to="/profile" className="nav-link">Profile</Link>
-                {user?.isAdmin && (
+                {user?.role === 'admin' && (
                   <Link to="/admin" className="nav-link admin-link">Admin</Link>
                 )}
               </>
