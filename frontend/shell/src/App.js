@@ -3,8 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { SocketProvider } from './contexts/SocketContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import Toast from './components/Toast';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -127,11 +129,14 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <SocketProvider>
-          <AppContent />
-        </SocketProvider>
-      </CartProvider>
+      <NotificationProvider>
+        <CartProvider>
+          <SocketProvider>
+            <AppContent />
+            <Toast />
+          </SocketProvider>
+        </CartProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

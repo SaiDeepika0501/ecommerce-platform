@@ -40,12 +40,30 @@ const Cart = () => {
       const response = await axios.put(
         `http://localhost:5000/api/cart/update/${itemId}`,
         { quantity },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
       );
       setCart(response.data);
+      
+      // Show success notification
+      if (window.notificationAPI) {
+        window.notificationAPI.success('Cart updated successfully');
+      }
     } catch (error) {
-      alert('Error updating cart');
-      console.error('Error:', error);
+      console.error('Error updating cart:', error);
+      
+      const errorMessage = error.response?.data?.message || 'Error updating cart';
+      
+      // Show error notification
+      if (window.notificationAPI) {
+        window.notificationAPI.error(errorMessage);
+      } else {
+        alert(errorMessage);
+      }
     }
   };
 
@@ -54,44 +72,67 @@ const Cart = () => {
       const token = localStorage.getItem('token');
       const response = await axios.delete(
         `http://localhost:5000/api/cart/remove/${itemId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
       );
       setCart(response.data);
+      
+      // Show success notification
+      if (window.notificationAPI) {
+        window.notificationAPI.success('Item removed from cart');
+      }
     } catch (error) {
-      alert('Error removing item');
-      console.error('Error:', error);
+      console.error('Error removing item:', error);
+      
+      const errorMessage = error.response?.data?.message || 'Error removing item';
+      
+      // Show error notification
+      if (window.notificationAPI) {
+        window.notificationAPI.error(errorMessage);
+      } else {
+        alert(errorMessage);
+      }
     }
   };
 
   const checkout = async () => {
     try {
-      setOrderLoading(true);
       const token = localStorage.getItem('token');
-      
-      const orderData = {
-        shippingAddress: {
-          street: '123 Main St',
-          city: 'Anytown',
-          state: 'CA',
-          zipCode: '12345',
-          country: 'USA'
-        },
-        paymentMethod: 'card'
-      };
-
-      await axios.post(
+      const response = await axios.post(
         'http://localhost:5000/api/orders',
-        orderData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {},
+        { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
       );
-
-      alert('Order placed successfully!');
+      
+      // Clear cart after successful order
       setCart({ items: [], totalAmount: 0 });
+      
+      // Show success notification
+      if (window.notificationAPI) {
+        window.notificationAPI.success('Order placed successfully!');
+      } else {
+        alert('Order placed successfully!');
+      }
     } catch (error) {
-      alert('Error placing order');
-      console.error('Error:', error);
-    } finally {
-      setOrderLoading(false);
+      console.error('Error placing order:', error);
+      
+      const errorMessage = error.response?.data?.message || 'Error placing order';
+      
+      // Show error notification
+      if (window.notificationAPI) {
+        window.notificationAPI.error(errorMessage);
+      } else {
+        alert(errorMessage);
+      }
     }
   };
 

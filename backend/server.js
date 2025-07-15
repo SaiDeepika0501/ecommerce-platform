@@ -25,13 +25,17 @@ const io = new Server(server, {
   }
 });
 
-// Rate limiting - More permissive for development
+// Rate limiting - Disabled for development, only enabled in production
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 1000 requests for dev, 100 for production
+  max: process.env.NODE_ENV === 'production' ? 100 : 999999, // Essentially unlimited for dev, 100 for production
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: '15 minutes'
+  },
+  skip: (req) => {
+    // Skip rate limiting entirely for development
+    return process.env.NODE_ENV !== 'production';
   }
 });
 
@@ -40,7 +44,8 @@ app.use(helmet());
 app.use(compression());
 
 // Apply rate limiting only to API routes (skip for health checks)
-app.use('/api', limiter);
+// Completely disable rate limiting for development
+// app.use('/api', limiter);
 app.use(cors({
   origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:3004"],
   credentials: true
@@ -124,8 +129,19 @@ process.on('SIGINT', async () => {
 connectToMongoDB();
 
 // Socket.IO for real-time features
+let connectedUsers = 0;
+let lastLogTime = 0;
+const LOG_INTERVAL = 30000; // Log every 30 seconds
+
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  connectedUsers++;
+  const now = Date.now();
+  
+  // Only log connection stats periodically in development to reduce noise
+  if (process.env.NODE_ENV === 'production' || now - lastLogTime > LOG_INTERVAL) {
+    console.log(`📡 Socket.IO: ${connectedUsers} active connections`);
+    lastLogTime = now;
+  }
   
   socket.on('join-room', (userId) => {
     socket.join(`user-${userId}`);
@@ -136,7 +152,7 @@ io.on('connection', (socket) => {
   });
   
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    connectedUsers = Math.max(0, connectedUsers - 1);
   });
 });
 

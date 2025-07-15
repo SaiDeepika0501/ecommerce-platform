@@ -15,28 +15,57 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Set up axios defaults
+  // Set up axios defaults and expose auth state globally
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       // Verify token and get user info
-      fetchUserProfile();
+      fetchUserProfile(token);
     } else {
       setLoading(false);
     }
-  }, []);
 
-  const fetchUserProfile = async () => {
+    // Expose authentication API globally for micro-frontends
+    window.authAPI = {
+      get isAuthenticated() {
+        const token = localStorage.getItem('token');
+        return !!(token && user);
+      },
+      get user() {
+        return user;
+      },
+      get token() {
+        return localStorage.getItem('token');
+      },
+      getAuthHeaders() {
+        const token = localStorage.getItem('token');
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+      }
+    };
+
+    // Also expose it on the global object for easier access
+    if (typeof window !== 'undefined') {
+      window.getAuthStatus = () => ({
+        isAuthenticated: !!(localStorage.getItem('token') && user),
+        user: user,
+        token: localStorage.getItem('token')
+      });
+    }
+  }, [user]);
+
+  const fetchUserProfile = async (token) => {
     try {
-      const response = await axios.get('http://localhost:5000/api/auth/profile');
-      const userData = response.data;
-      // Add isAdmin flag based on role
-      userData.isAdmin = userData.role === 'admin';
-      setUser(userData);
+      const response = await axios.get('http://localhost:5000/api/auth/profile', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setUser(response.data);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
-      logout();
+      console.error('Failed to fetch user profile:', error);
+      // Token might be invalid, clear it
+      localStorage.removeItem('token');
+      delete axios.defaults.headers.common['Authorization'];
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -48,16 +77,37 @@ export const AuthProvider = ({ children }) => {
         email,
         password
       });
+
+      const { token, user: userData } = response.data;
       
-      const { token, ...userData } = response.data;
-      // Add isAdmin flag based on role
-      userData.isAdmin = userData.role === 'admin';
+      // Store token
       localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(userData);
       
-      return { success: true };
+      // Set axios default header
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      // Set user state
+      setUser(userData);
+
+      // Update global auth API
+      window.authAPI = {
+        get isAuthenticated() {
+          return !!(localStorage.getItem('token') && userData);
+        },
+        get user() {
+          return userData;
+        },
+        get token() {
+          return localStorage.getItem('token');
+        },
+        getAuthHeaders() {
+          return { 'Authorization': `Bearer ${token}` };
+        }
+      };
+
+      return { success: true, user: userData };
     } catch (error) {
+      console.error('Login failed:', error);
       return { 
         success: false, 
         error: error.response?.data?.message || 'Login failed' 
@@ -65,23 +115,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password) => {
+  const register = async (userData) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
-        name,
-        email,
-        password
-      });
-      
-      const { token, ...userData } = response.data;
-      // Add isAdmin flag based on role
-      userData.isAdmin = userData.role === 'admin';
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(userData);
-      
-      return { success: true };
+      const response = await axios.post('http://localhost:5000/api/auth/register', userData);
+      return { success: true, message: response.data.message };
     } catch (error) {
+      console.error('Registration failed:', error);
       return { 
         success: false, 
         error: error.response?.data?.message || 'Registration failed' 
@@ -90,18 +129,37 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // Clear token and user data
     localStorage.removeItem('token');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
+
+    // Update global auth API
+    window.authAPI = {
+      get isAuthenticated() {
+        return false;
+      },
+      get user() {
+        return null;
+      },
+      get token() {
+        return null;
+      },
+      getAuthHeaders() {
+        return {};
+      }
+    };
   };
+
+  const isAuthenticated = !!(user && localStorage.getItem('token'));
 
   const value = {
     user,
     loading,
+    isAuthenticated,
     login,
     register,
-    logout,
-    isAuthenticated: !!user
+    logout
   };
 
   return (
