@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Product = require('../models/Product');
+const IoTDevice = require('../models/IoTDevice');
+const IoTReading = require('../models/IoTReading');
 require('dotenv').config();
 
 const seedData = async () => {
@@ -12,6 +14,8 @@ const seedData = async () => {
     // Clear existing data
     await User.deleteMany({});
     await Product.deleteMany({});
+    await IoTDevice.deleteMany({});
+    await IoTReading.deleteMany({});
 
     // Create admin user
     const admin = await User.create({
@@ -21,7 +25,7 @@ const seedData = async () => {
       role: 'admin'
     });
 
-    // Create sample customer
+    // Create customer user
     const customer = await User.create({
       name: 'John Doe',
       email: 'john@example.com',
@@ -29,110 +33,111 @@ const seedData = async () => {
       role: 'customer'
     });
 
-    // Create sample products
     const products = [
       {
         name: 'Wireless Bluetooth Headphones',
-        description: 'High-quality wireless headphones with noise cancellation and 30-hour battery life.',
-        price: 16599, // ₹16,599 (converted from $199.99)
+        description: 'High-quality wireless headphones with noise cancellation and long battery life.',
+        price: 7999,
         category: 'Electronics',
         inventory: {
           quantity: 50,
           lowStockThreshold: 10,
-          sku: 'WH001'
+          sku: 'WBH-001',
+          lastUpdated: new Date()
         },
-        images: [
-          { url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500', alt: 'Wireless Headphones' },
-          { url: 'https://images.unsplash.com/photo-1484704849700-f032a568e944?w=500', alt: 'Wireless Headphones' }
-        ],
+        images: [{ url: '/images/headphones.jpg', alt: 'Wireless Bluetooth Headphones' }],
         tags: ['wireless', 'bluetooth', 'headphones', 'audio'],
         specifications: {
           'Battery Life': '30 hours',
-          'Connectivity': 'Bluetooth 5.0',
+          'Range': '10 meters',
           'Weight': '250g',
-          'Color': 'Black'
-        }
-      },
-      {
-        name: 'Premium Coffee Beans',
-        description: 'Organic, fair-trade coffee beans roasted to perfection. Single origin from Colombian highlands.',
-        price: 2490, // ₹2,490 (converted from $29.99)
-        category: 'Food & Beverages',
-        inventory: {
-          quantity: 100,
-          lowStockThreshold: 20,
-          sku: 'SW001'
+          'Noise Cancellation': 'Active'
         },
-        images: [
-          { url: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500', alt: 'Smart Watch' },
-          { url: 'https://images.unsplash.com/photo-1610889556528-9a770e32642f?w=500', alt: 'Smart Watch' }
-        ],
-        tags: ['coffee', 'organic', 'fair-trade', 'premium'],
-        specifications: {
-          'Origin': 'Colombia',
-          'Roast Level': 'Medium',
-          'Weight': '1kg',
-          'Processing': 'Washed'
+        metadata: {
+          unitWeight: 0.25,
+          rfidTag: 'RFID_001'
         }
       },
       {
-        name: 'Ergonomic Office Chair',
-        description: 'Comfortable ergonomic office chair with lumbar support and adjustable height.',
-        price: 24899, // ₹24,899 (converted from $299.99)
-        category: 'Furniture',
+        name: 'Smart Fitness Watch',
+        description: 'Advanced fitness tracking with heart rate monitoring and GPS.',
+        price: 12999,
+        category: 'Wearables',
         inventory: {
-          quantity: 25,
+          quantity: 30,
           lowStockThreshold: 5,
-          sku: 'CM001'
+          sku: 'SFW-002',
+          lastUpdated: new Date()
         },
-        images: [
-          { url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500', alt: 'Coffee Maker' },
-          { url: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=500', alt: 'Coffee Maker' }
-        ],
-        tags: ['office', 'chair', 'ergonomic', 'furniture'],
+        images: [{ url: '/images/smartwatch.jpg', alt: 'Smart Fitness Watch' }],
+        tags: ['fitness', 'smartwatch', 'health', 'gps'],
         specifications: {
-          'Material': 'Mesh and fabric',
-          'Weight Capacity': '150kg',
-          'Dimensions': '65x65x110cm',
-          'Warranty': '5 years'
+          'Display': '1.4 inch AMOLED',
+          'Battery': '7 days',
+          'Water Resistance': '5ATM',
+          'Sensors': 'Heart rate, GPS, Accelerometer'
+        },
+        metadata: {
+          unitWeight: 0.1,
+          rfidTag: 'RFID_002'
         }
       },
       {
-        name: 'Smartphone Cases Set',
-        description: 'Protective smartphone cases compatible with latest models. Pack of 3 different colors.',
-        price: 4149, // ₹4,149 (converted from $49.99)
+        name: 'Laptop Backpack',
+        description: 'Durable laptop backpack with multiple compartments and water-resistant material.',
+        price: 2499,
         category: 'Accessories',
-        inventory: {
-          quantity: 200,
-          lowStockThreshold: 40,
-          sku: 'TS001'
-        },
-        images: [
-          { url: 'https://images.unsplash.com/photo-1601593346740-925612772716?w=500', alt: 'Organic Cotton T-Shirt' },
-          { url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=500', alt: 'Organic Cotton T-Shirt' }
-        ],
-        tags: ['smartphone', 'case', 'protection', 'accessories'],
-        specifications: {
-          'Material': 'TPU and PC',
-          'Colors': 'Black, Blue, Clear',
-          'Compatibility': 'Multiple models',
-          'Drop Protection': 'Up to 2m'
-        }
-      },
-      {
-        name: 'Yoga Mat Premium',
-        description: 'Non-slip yoga mat made from eco-friendly materials. Perfect for home workouts.',
-        price: 7459, // ₹7,459 (converted from $89.99)
-        category: 'Sports & Fitness',
         inventory: {
           quantity: 75,
           lowStockThreshold: 15,
-          sku: 'YM001'
+          sku: 'LBP-003',
+          lastUpdated: new Date()
         },
-        images: [
-          { url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500', alt: 'Yoga Mat' },
-          { url: 'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=500', alt: 'Yoga Mat' }
-        ],
+        images: [{ url: '/images/backpack.jpg', alt: 'Laptop Backpack' }],
+        tags: ['backpack', 'laptop', 'travel', 'water-resistant'],
+        specifications: {
+          'Capacity': '25 liters',
+          'Laptop Size': 'Up to 15.6 inches',
+          'Material': 'Polyester',
+          'Pockets': '6 compartments'
+        },
+        metadata: {
+          unitWeight: 0.8,
+          rfidTag: 'RFID_003'
+        }
+      },
+      {
+        name: 'Wireless Charging Pad',
+        description: 'Fast wireless charging pad compatible with all Qi-enabled devices.',
+        price: 1999,
+        category: 'Electronics',
+        inventory: {
+          quantity: 100,
+          lowStockThreshold: 20,
+          sku: 'WCP-004',
+          lastUpdated: new Date()
+        },
+        images: [{ url: '/images/charger.jpg', alt: 'Wireless Charging Pad' }],
+        tags: ['wireless', 'charging', 'qi', 'fast-charge'],
+        specifications: {
+          'Output': '10W',
+          'Compatibility': 'Qi-enabled devices',
+          'Input': 'USB-C',
+          'Dimensions': '10cm diameter'
+        }
+      },
+      {
+        name: 'Eco-Friendly Yoga Mat',
+        description: 'Non-slip yoga mat made from natural rubber, perfect for all yoga styles.',
+        price: 3499,
+        category: 'Fitness',
+        inventory: {
+          quantity: 40,
+          lowStockThreshold: 8,
+          sku: 'EYM-005',
+          lastUpdated: new Date()
+        },
+        images: [{ url: '/images/yogamat.jpg', alt: 'Eco-Friendly Yoga Mat' }],
         tags: ['yoga', 'fitness', 'exercise', 'eco-friendly'],
         specifications: {
           'Material': 'Natural rubber',
@@ -143,10 +148,162 @@ const seedData = async () => {
       }
     ];
 
-    await Product.insertMany(products);
+    const createdProducts = await Product.insertMany(products);
+
+    // Create IoT devices
+    const iotDevices = [
+      {
+        deviceId: 'TEMP_001',
+        name: 'Temperature Sensor - Warehouse A',
+        type: 'temperature',
+        location: {
+          warehouse: 'Main Warehouse',
+          zone: 'Zone A',
+          coordinates: { lat: 40.7128, lng: -74.0060 }
+        },
+        status: 'active',
+        isOnline: true,
+        batteryLevel: 85,
+        alertThresholds: { min: 15, max: 35 },
+        lastReading: {
+          value: 22.5,
+          timestamp: new Date(),
+          unit: '°C'
+        }
+      },
+      {
+        deviceId: 'HUM_001',
+        name: 'Humidity Sensor - Warehouse A',
+        type: 'humidity',
+        location: {
+          warehouse: 'Main Warehouse',
+          zone: 'Zone A',
+          coordinates: { lat: 40.7128, lng: -74.0060 }
+        },
+        status: 'active',
+        isOnline: true,
+        batteryLevel: 78,
+        alertThresholds: { min: 30, max: 70 },
+        lastReading: {
+          value: 45,
+          timestamp: new Date(),
+          unit: '%'
+        }
+      },
+      {
+        deviceId: 'RFID_READER_01',
+        name: 'RFID Reader - Entry Gate',
+        type: 'rfid',
+        location: {
+          warehouse: 'Main Warehouse',
+          zone: 'Entry',
+          coordinates: { lat: 40.7128, lng: -74.0060 }
+        },
+        status: 'active',
+        isOnline: true,
+        batteryLevel: 92,
+        lastReading: {
+          value: 'RFID_001',
+          timestamp: new Date(),
+          unit: 'tag'
+        }
+      },
+      {
+        deviceId: 'WEIGHT_001',
+        name: 'Smart Scale - Electronics Shelf',
+        type: 'weight',
+        location: {
+          warehouse: 'Main Warehouse',
+          zone: 'Electronics Section',
+          coordinates: { lat: 40.7128, lng: -74.0060 }
+        },
+        status: 'active',
+        isOnline: true,
+        batteryLevel: 67,
+        productId: createdProducts[0]._id, // Wireless Headphones
+        lastReading: {
+          value: 12.5,
+          timestamp: new Date(),
+          unit: 'kg'
+        }
+      },
+      {
+        deviceId: 'MOTION_001',
+        name: 'Motion Detector - Warehouse Entrance',
+        type: 'motion',
+        location: {
+          warehouse: 'Main Warehouse',
+          zone: 'Entrance',
+          coordinates: { lat: 40.7128, lng: -74.0060 }
+        },
+        status: 'active',
+        isOnline: true,
+        batteryLevel: 88,
+        lastReading: {
+          value: 1,
+          timestamp: new Date(),
+          unit: 'detected'
+        }
+      }
+    ];
+
+    const createdDevices = await IoTDevice.insertMany(iotDevices);
+
+    // Create sample IoT readings
+    const iotReadings = [
+      {
+        deviceId: 'TEMP_001',
+        sensorType: 'temperature',
+        value: 22.5,
+        unit: '°C',
+        location: { warehouse: 'Main Warehouse', zone: 'Zone A' },
+        metadata: { humidity: 45, pressure: 1013.2 },
+        alert: { isTriggered: false }
+      },
+      {
+        deviceId: 'HUM_001',
+        sensorType: 'humidity',
+        value: 45,
+        unit: '%',
+        location: { warehouse: 'Main Warehouse', zone: 'Zone A' },
+        metadata: { temperature: 22.5 },
+        alert: { isTriggered: false }
+      },
+      {
+        deviceId: 'WEIGHT_001',
+        sensorType: 'weight',
+        value: 12.5,
+        unit: 'kg',
+        location: { warehouse: 'Main Warehouse', zone: 'Electronics Section' },
+        productId: createdProducts[0]._id,
+        metadata: { 
+          estimatedQuantity: 50,
+          unitWeight: 0.25,
+          shelfId: 'SHELF_A1'
+        },
+        alert: { isTriggered: false }
+      },
+      {
+        deviceId: 'RFID_READER_01',
+        sensorType: 'rfid',
+        value: 'RFID_001',
+        unit: 'tag',
+        location: { warehouse: 'Main Warehouse', zone: 'Entry' },
+        productId: createdProducts[0]._id,
+        metadata: {
+          scanType: 'product_identification',
+          productName: 'Wireless Bluetooth Headphones'
+        },
+        alert: { isTriggered: false }
+      }
+    ];
+
+    await IoTReading.insertMany(iotReadings);
 
     console.log('Sample data seeded successfully');
     console.log(`Created ${products.length} products`);
+    console.log(`Created ${iotDevices.length} IoT devices`);
+    console.log(`Created ${iotReadings.length} IoT readings`);
     console.log('Admin user: admin@example.com / password123');
     console.log('Customer user: john@example.com / password123');
 
@@ -165,7 +322,6 @@ const seedData = async () => {
 // Only run seeding if this script is executed directly
 if (require.main === module) {
   seedData();
-} else {
-  // Export the function for use in server.js
-  module.exports = seedData;
-} 
+}
+
+module.exports = seedData; 

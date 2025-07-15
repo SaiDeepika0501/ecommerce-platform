@@ -15,6 +15,7 @@ const productRoutes = require('./routes/products');
 const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
 const inventoryRoutes = require('./routes/inventory');
+const iotRoutes = require('./routes/iot');
 
 const app = express();
 const server = createServer(app);
@@ -188,6 +189,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/iot', iotRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

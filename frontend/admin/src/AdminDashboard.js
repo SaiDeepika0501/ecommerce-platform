@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import UserManagement from './UserManagement';
 import OrderManagement from './OrderManagement';
 import InventoryManagement from './InventoryManagement';
+import IoTDashboard from './IoTDashboard';
 import { formatINR } from './utils/currency';
 import './AdminDashboard.css';
 
@@ -92,6 +93,8 @@ const AdminDashboard = () => {
         return <OrderManagement stats={stats} onRefresh={fetchDashboardStats} />;
       case 'inventory':
         return <InventoryManagement stats={stats} onRefresh={fetchDashboardStats} />;
+      case 'iot':
+        return <IoTDashboard />;
       default:
         return <UserManagement stats={stats} onRefresh={fetchDashboardStats} />;
     }
@@ -139,6 +142,12 @@ const AdminDashboard = () => {
           {stats.lowStockCount > 0 && (
             <span className="warning-badge">{stats.lowStockCount}</span>
           )}
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'iot' ? 'active' : ''}`}
+          onClick={() => setActiveTab('iot')}
+        >
+          🌐 IoT Management
         </button>
       </div>
 
