@@ -8,6 +8,14 @@ const Cart = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [orderLoading, setOrderLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [shippingAddress, setShippingAddress] = useState({
+    street: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: 'India'
+  });
 
   useEffect(() => {
     fetchCart();
@@ -101,10 +109,24 @@ const Cart = () => {
 
   const checkout = async () => {
     try {
+      setOrderLoading(true);
       const token = localStorage.getItem('token');
+      
+      // Prepare order data with required fields
+      const orderData = {
+        paymentMethod,
+        shippingAddress: {
+          street: shippingAddress.street || 'Default Street',
+          city: shippingAddress.city || 'Default City', 
+          state: shippingAddress.state || 'Default State',
+          zipCode: shippingAddress.zipCode || '000000',
+          country: shippingAddress.country || 'India'
+        }
+      };
+
       const response = await axios.post(
         'http://localhost:5000/api/orders',
-        {},
+        orderData,
         { 
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -118,9 +140,9 @@ const Cart = () => {
       
       // Show success notification
       if (window.notificationAPI) {
-        window.notificationAPI.success('Order placed successfully!');
+        window.notificationAPI.success(`Order placed successfully! Order #${response.data.orderNumber}`);
       } else {
-        alert('Order placed successfully!');
+        alert(`Order placed successfully! Order #${response.data.orderNumber}`);
       }
     } catch (error) {
       console.error('Error placing order:', error);
@@ -133,6 +155,8 @@ const Cart = () => {
       } else {
         alert(errorMessage);
       }
+    } finally {
+      setOrderLoading(false);
     }
   };
 
@@ -183,13 +207,95 @@ const Cart = () => {
           </div>
           
           <div className="cart-summary">
-            <h3>Total: {formatINR(cart.totalAmount)}</h3>
+            <h2>Order Summary</h2>
+            <div className="summary-row">
+              <span>Total: {formatINR(cart.totalAmount)}</span>
+            </div>
+            
+            <div className="payment-section">
+              <h3>Payment Method</h3>
+              <div className="payment-options">
+                <label className="payment-option">
+                  <input
+                    type="radio"
+                    value="card"
+                    checked={paymentMethod === 'card'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                  />
+                  💳 Credit/Debit Card
+                </label>
+                <label className="payment-option">
+                  <input
+                    type="radio"
+                    value="paypal"
+                    checked={paymentMethod === 'paypal'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                  />
+                  💰 PayPal
+                </label>
+                <label className="payment-option">
+                  <input
+                    type="radio"
+                    value="cash"
+                    checked={paymentMethod === 'cash'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                  />
+                  💵 Cash on Delivery
+                </label>
+              </div>
+            </div>
+
+            <div className="shipping-section">
+              <h3>Shipping Address</h3>
+              <div className="address-form">
+                <input
+                  type="text"
+                  placeholder="Street Address"
+                  value={shippingAddress.street}
+                  onChange={(e) => setShippingAddress({...shippingAddress, street: e.target.value})}
+                  className="address-input"
+                />
+                <div className="address-row">
+                  <input
+                    type="text"
+                    placeholder="City"
+                    value={shippingAddress.city}
+                    onChange={(e) => setShippingAddress({...shippingAddress, city: e.target.value})}
+                    className="address-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="State"
+                    value={shippingAddress.state}
+                    onChange={(e) => setShippingAddress({...shippingAddress, state: e.target.value})}
+                    className="address-input"
+                  />
+                </div>
+                <div className="address-row">
+                  <input
+                    type="text"
+                    placeholder="ZIP Code"
+                    value={shippingAddress.zipCode}
+                    onChange={(e) => setShippingAddress({...shippingAddress, zipCode: e.target.value})}
+                    className="address-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Country"
+                    value={shippingAddress.country}
+                    onChange={(e) => setShippingAddress({...shippingAddress, country: e.target.value})}
+                    className="address-input"
+                  />
+                </div>
+              </div>
+            </div>
+            
             <button 
               onClick={checkout}
               className="checkout-btn"
               disabled={orderLoading}
             >
-              {orderLoading ? 'Processing...' : 'Checkout'}
+              {orderLoading ? 'Placing Order...' : 'Place Order'}
             </button>
           </div>
         </div>
