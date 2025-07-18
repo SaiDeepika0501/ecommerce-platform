@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
         password
       });
 
-      const { token, user: userData } = response.data;
+      const { token, ...userData } = response.data;
       
       // Store token
       localStorage.setItem('token', token);
@@ -118,7 +118,31 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await axios.post('http://localhost:5000/api/auth/register', userData);
-      return { success: true, message: response.data.message };
+      
+      const { token, ...userInfo } = response.data;
+      
+      // Store token and auto-login after registration
+      localStorage.setItem('token', token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(userInfo);
+
+      // Update global auth API
+      window.authAPI = {
+        get isAuthenticated() {
+          return !!(localStorage.getItem('token') && userInfo);
+        },
+        get user() {
+          return userInfo;
+        },
+        get token() {
+          return localStorage.getItem('token');
+        },
+        getAuthHeaders() {
+          return { 'Authorization': `Bearer ${token}` };
+        }
+      };
+      
+      return { success: true, user: userInfo };
     } catch (error) {
       console.error('Registration failed:', error);
       return { 

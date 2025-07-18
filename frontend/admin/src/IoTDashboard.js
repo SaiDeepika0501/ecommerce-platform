@@ -28,11 +28,12 @@ const IoTDashboard = () => {
   const [overviewFilter, setOverviewFilter] = useState({
     deviceType: 'all',
     deviceId: 'all', 
-    timeRange: '24h',
-    showAlertsOnly: false,
+    timeRange: 'all',
+
     limit: 20
   });
   const [filteredReadings, setFilteredReadings] = useState([]);
+  const [loadingFilters, setLoadingFilters] = useState(false);
 
   // Simulate IoT device
   const [simulation, setSimulation] = useState({
@@ -110,6 +111,8 @@ const IoTDashboard = () => {
 
   const fetchFilteredReadings = async () => {
     try {
+      setLoadingFilters(true);
+      setError(''); // Clear any previous errors
       const token = localStorage.getItem('token');
       
       // Build query parameters based on filters
@@ -132,18 +135,20 @@ const IoTDashboard = () => {
         params.append('deviceId', overviewFilter.deviceId);
       }
       
-      if (overviewFilter.showAlertsOnly) {
-        params.append('alertsOnly', 'true');
-      }
+      console.log('Fetching filtered readings with params:', params.toString());
       
       const response = await axios.get(`http://localhost:5000/api/iot/readings?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
+      console.log('Filtered readings response:', response.data);
       setFilteredReadings(response.data || []);
     } catch (error) {
       console.error('Error fetching filtered readings:', error);
+      setError(`Failed to load filtered readings: ${error.response?.data?.message || error.message}`);
       setFilteredReadings([]);
+    } finally {
+      setLoadingFilters(false);
     }
   };
 
@@ -659,57 +664,69 @@ const IoTDashboard = () => {
                     <option value="100">Show 100</option>
                   </select>
                   
-                  <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      checked={overviewFilter.showAlertsOnly}
-                      onChange={(e) => setOverviewFilter({...overviewFilter, showAlertsOnly: e.target.checked})}
-                    />
-                    🚨 Alerts Only
-                  </label>
+
                   
                   <button 
                     onClick={fetchFilteredReadings}
                     className="apply-filter-btn"
+                    disabled={loadingFilters}
                   >
-                    Apply Filters
+                    {loadingFilters ? '🔄 Loading...' : '📊 Apply Filters'}
                   </button>
                 </div>
               </div>
               
               <div className="readings-count">
-                Showing {filteredReadings.length || dashboardData.recentReadings?.length || 0} readings
-                {overviewFilter.showAlertsOnly && ' with alerts'}
-                {overviewFilter.deviceType !== 'all' && ` (${overviewFilter.deviceType} sensors)`}
+                Showing {filteredReadings.length > 0 ? filteredReadings.length : (dashboardData.recentReadings?.length || 0)} readings{overviewFilter.deviceType !== 'all' ? ` (${overviewFilter.deviceType} sensors)` : ''}
               </div>
               
               <div className="readings-list">
-                {(filteredReadings.length > 0 ? filteredReadings : dashboardData.recentReadings || []).map(reading => (
-                  <div key={reading._id} className={`reading-item ${reading.alert?.isTriggered ? 'has-alert' : ''}`}>
-                    <span className="device-name">{reading.deviceInfo?.name || reading.deviceId}</span>
-                    <span className="sensor-type">
-                      {reading.sensorType}
+                {(() => {
+                  // Show loading state
+                  if (loadingFilters) {
+                    return (
+                      <div className="loading-readings">
+                        <div className="loading-spinner">🔄</div>
+                        <p>Applying filters and loading readings...</p>
+                      </div>
+                    );
+                  }
+                  
+                  // Always show filtered readings (which includes all readings when no filters)
+                  const readingsToShow = filteredReadings.length > 0 ? filteredReadings : (dashboardData.recentReadings || []);
+                  const hasFiltersApplied = overviewFilter.deviceType !== 'all' || 
+                                           overviewFilter.deviceId !== 'all' || 
+                                           overviewFilter.timeRange !== 'all';
+                  
+                                      if (readingsToShow.length === 0 && hasFiltersApplied) {
+                      return (
+                        <div className="no-readings">
+                          No readings found matching the current filters. Try adjusting your filter criteria.
+                        </div>
+                      );
+                    }
+                  
+                  return readingsToShow.map(reading => (
+                    <div key={reading._id} className={`reading-item ${reading.alert?.isTriggered ? 'has-alert' : ''}`}>
+                      <span className="device-name">{reading.deviceInfo?.name || reading.deviceId}</span>
+                      <span className="sensor-type">
+                        {reading.sensorType}
+                        {reading.alert?.isTriggered && (
+                          <span className={`alert-badge ${reading.alert.level}`}>
+                            🚨 {reading.alert.level}
+                          </span>
+                        )}
+                      </span>
+                      <span className="value">{reading.value} {reading.unit}</span>
+                      <span className="timestamp">
+                        {new Date(reading.createdAt).toLocaleString()}
+                      </span>
                       {reading.alert?.isTriggered && (
-                        <span className={`alert-badge ${reading.alert.level}`}>
-                          🚨 {reading.alert.level}
-                        </span>
+                        <div className="alert-message">{reading.alert.message}</div>
                       )}
-                    </span>
-                    <span className="value">{reading.value} {reading.unit}</span>
-                    <span className="timestamp">
-                      {new Date(reading.createdAt).toLocaleString()}
-                    </span>
-                    {reading.alert?.isTriggered && (
-                      <div className="alert-message">{reading.alert.message}</div>
-                    )}
-                  </div>
-                ))}
-                
-                {filteredReadings.length === 0 && overviewFilter.deviceType !== 'all' && (
-                  <div className="no-readings">
-                    No readings found matching the current filters. Try adjusting your filter criteria.
-                  </div>
-                )}
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
           </div>

@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const IoTDevice = require('../models/IoTDevice');
 const IoTReading = require('../models/IoTReading');
+const Order = require('../models/Order');
 require('dotenv').config();
 
 const seedData = async () => {
@@ -16,6 +17,9 @@ const seedData = async () => {
     await Product.deleteMany({});
     await IoTDevice.deleteMany({});
     await IoTReading.deleteMany({});
+    
+    // Clear orders if they exist
+    await Order.deleteMany({});
 
     // Create admin user
     const admin = await User.create({
@@ -25,39 +29,21 @@ const seedData = async () => {
       role: 'admin'
     });
 
-    // Create multiple customer users
-    const customers = await User.insertMany([
-      {
-        name: 'John Doe',
-        email: 'john@example.com',
-        password: 'password123',
-        role: 'customer'
-      },
-      {
-        name: 'Sarah Wilson',
-        email: 'sarah@example.com',
-        password: 'password123',
-        role: 'customer'
-      },
-      {
-        name: 'Mike Chen',
-        email: 'mike@example.com',
-        password: 'password123',
-        role: 'customer'
-      },
-      {
-        name: 'Emily Johnson',
-        email: 'emily@example.com',
-        password: 'password123',
-        role: 'customer'
-      },
-      {
-        name: 'David Rodriguez',
-        email: 'david@example.com',
-        password: 'password123',
-        role: 'customer'
-      }
-    ]);
+    // Create multiple customer users (using individual creates to trigger password hashing)
+    const customers = [];
+    
+    const customerData = [
+      { name: 'John Doe', email: 'john@example.com', password: 'password123', role: 'customer' },
+      { name: 'Sarah Wilson', email: 'sarah@example.com', password: 'password123', role: 'customer' },
+      { name: 'Mike Chen', email: 'mike@example.com', password: 'password123', role: 'customer' },
+      { name: 'Emily Johnson', email: 'emily@example.com', password: 'password123', role: 'customer' },
+      { name: 'David Rodriguez', email: 'david@example.com', password: 'password123', role: 'customer' }
+    ];
+    
+    for (const userData of customerData) {
+      const customer = await User.create(userData);
+      customers.push(customer);
+    }
 
     const products = [
       // Electronics - Various stock levels
@@ -940,7 +926,6 @@ const seedData = async () => {
     await IoTReading.insertMany(iotReadings);
 
     // Create sample orders with various statuses
-    const Order = require('../models/Order');
     const sampleOrders = [
       {
         orderNumber: 'ORD-001',

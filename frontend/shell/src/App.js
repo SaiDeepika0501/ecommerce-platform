@@ -71,21 +71,6 @@ const AdminRoute = ({ children }) => {
 };
 
 function AppContent() {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate app initialization
-    setTimeout(() => setLoading(false), 1000);
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="loading-spinner">
-        <div className="spinner"></div>
-        <p>Loading E-commerce Platform...</p>
-      </div>
-    );
-  }
 
   return (
     <Router>
