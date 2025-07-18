@@ -165,8 +165,13 @@ router.get('/alerts', protect, async (req, res) => {
     const alerts = await IoTReading.find({ 'alert.isTriggered': true })
       .sort({ createdAt: -1 })
       .limit(100)
-      .populate('productId', 'name')
-      .populate('deviceId');
+      .populate('productId', 'name');
+    
+    // Manually lookup device info for alerts
+    for (let alert of alerts) {
+      const device = await IoTDevice.findOne({ deviceId: alert.deviceId });
+      alert.deviceInfo = device ? { name: device.name, type: device.type } : null;
+    }
     
     res.json(alerts);
   } catch (error) {
@@ -184,8 +189,13 @@ router.get('/dashboard', protect, async (req, res) => {
     const recentReadings = await IoTReading.find()
       .sort({ createdAt: -1 })
       .limit(10)
-      .populate('deviceId', 'name type')
       .populate('productId', 'name');
+    
+    // Manually lookup device info for readings
+    for (let reading of recentReadings) {
+      const device = await IoTDevice.findOne({ deviceId: reading.deviceId });
+      reading.deviceInfo = device ? { name: device.name, type: device.type } : null;
+    }
     
     const devicesByType = await IoTDevice.aggregate([
       { $group: { _id: '$type', count: { $sum: 1 } } }

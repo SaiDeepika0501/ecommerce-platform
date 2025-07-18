@@ -48,7 +48,7 @@ const IoTDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/iot/dashboard', {
+      const response = await axios.get('http://localhost:5000/api/iot/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDashboardData(response.data);
@@ -61,7 +61,7 @@ const IoTDashboard = () => {
   const fetchDevices = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/iot/devices', {
+      const response = await axios.get('http://localhost:5000/api/iot/devices', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDevices(response.data);
@@ -73,7 +73,7 @@ const IoTDashboard = () => {
   const fetchAlerts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/iot/alerts', {
+      const response = await axios.get('http://localhost:5000/api/iot/alerts', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAlerts(response.data);
@@ -87,7 +87,7 @@ const IoTDashboard = () => {
   const fetchDeviceReadings = async (deviceId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/iot/devices/${deviceId}/readings`, {
+      const response = await axios.get(`http://localhost:5000/api/iot/devices/${deviceId}/readings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDeviceReadings(response.data);
@@ -121,7 +121,7 @@ const IoTDashboard = () => {
     try {
       const value = (20 + Math.random() * 15).toFixed(1); // Temperature between 20-35°C
       
-      await axios.post('/api/iot/readings', {
+      await axios.post('http://localhost:5000/api/iot/readings', {
         deviceId: simulation.deviceId,
         sensorType: simulation.sensorType,
         value: parseFloat(value),
@@ -158,7 +158,7 @@ const IoTDashboard = () => {
       const rfidTags = ['RFID_001', 'RFID_002', 'RFID_003'];
       const randomTag = rfidTags[Math.floor(Math.random() * rfidTags.length)];
       
-      await axios.post('/api/iot/rfid/scan', {
+      await axios.post('http://localhost:5000/api/iot/rfid/scan', {
         deviceId: 'RFID_READER_01',
         rfidTag: randomTag,
         location: {
@@ -381,7 +381,7 @@ const IoTDashboard = () => {
             {dashboardData.recentReadings.slice(0, 20).map(reading => (
               <div key={reading._id} className="live-reading-card">
                 <div className="reading-header">
-                  <h4>{reading.deviceId?.name || reading.deviceId}</h4>
+                  <h4>{reading.deviceInfo?.name || reading.deviceId}</h4>
                   <span className="reading-type">{reading.sensorType}</span>
                 </div>
                 <div className="reading-value">
