@@ -159,6 +159,59 @@ router.get('/devices/:deviceId/readings', protect, async (req, res) => {
   }
 });
 
+// Get all IoT readings with filtering
+router.get('/readings', protect, async (req, res) => {
+  try {
+    const { 
+      limit = 50, 
+      startDate, 
+      endDate, 
+      deviceType, 
+      deviceId, 
+      alertsOnly 
+    } = req.query;
+    
+    let query = {};
+    
+    // Filter by date range
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+    
+    // Filter by device type (sensor type)
+    if (deviceType && deviceType !== 'all') {
+      query.sensorType = deviceType;
+    }
+    
+    // Filter by specific device
+    if (deviceId && deviceId !== 'all') {
+      query.deviceId = deviceId;
+    }
+    
+    // Filter by alerts only
+    if (alertsOnly === 'true') {
+      query['alert.isTriggered'] = true;
+    }
+    
+    const readings = await IoTReading.find(query)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .populate('productId', 'name');
+    
+    // Manually lookup device info for readings
+    for (let reading of readings) {
+      const device = await IoTDevice.findOne({ deviceId: reading.deviceId });
+      reading.deviceInfo = device ? { name: device.name, type: device.type } : null;
+    }
+    
+    res.json(readings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get active alerts
 router.get('/alerts', protect, async (req, res) => {
   try {
