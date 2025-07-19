@@ -12,13 +12,22 @@ const seedData = async () => {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce');
     console.log('Connected to MongoDB');
 
-    // Clear existing data
+    // Only clear and seed if database is empty
+    const existingUsers = await User.countDocuments();
+    const existingProducts = await Product.countDocuments();
+    
+    if (existingUsers > 0 && existingProducts > 0) {
+      console.log('✅ Database already contains data - skipping seed');
+      return;
+    }
+    
+    console.log('🌱 Database is empty - seeding with initial data...');
+    
+    // Clear existing data (only when seeding)
     await User.deleteMany({});
     await Product.deleteMany({});
     await IoTDevice.deleteMany({});
     await IoTReading.deleteMany({});
-    
-    // Clear orders if they exist
     await Order.deleteMany({});
 
     // Create admin user
@@ -716,6 +725,7 @@ const seedData = async () => {
         location: { warehouse: 'Main Warehouse', zone: 'Zone A - Electronics' },
         metadata: { humidity: 45, pressure: 1013.2 },
         alert: { isTriggered: false },
+        processed: true,
         createdAt: new Date(Date.now() - 300000) // 5 min ago
       },
       {
@@ -844,7 +854,7 @@ const seedData = async () => {
         createdAt: new Date(Date.now() - 7200000) // 2 hours ago
       },
 
-      // RFID scans
+      // RFID scans with inventory actions
       {
         deviceId: 'RFID_READER_01',
         sensorType: 'rfid',
@@ -853,8 +863,12 @@ const seedData = async () => {
         location: { warehouse: 'Main Warehouse', zone: 'Entry Gate' },
         productId: createdProducts[0]._id,
         metadata: {
-          scanType: 'product_identification',
-          productName: 'Wireless Bluetooth Headphones'
+          scanType: 'inventory_tracking',
+          productName: 'Wireless Bluetooth Headphones',
+          action: 'inbound',
+          quantity: 5,
+          previousStock: 45,
+          rfidTag: 'RFID_001'
         },
         alert: { isTriggered: false },
         createdAt: new Date(Date.now() - 2700000) // 45 min ago
@@ -867,11 +881,57 @@ const seedData = async () => {
         location: { warehouse: 'Main Warehouse', zone: 'Shipping Dock' },
         productId: createdProducts[4]._id, // Smart Fitness Watch
         metadata: {
-          scanType: 'shipping_verification',
-          productName: 'Smart Fitness Watch'
+          scanType: 'inventory_tracking',
+          productName: 'Smart Fitness Watch',
+          action: 'outbound',
+          quantity: 3,
+          previousStock: 33,
+          rfidTag: 'RFID_005'
         },
         alert: { isTriggered: false },
         createdAt: new Date(Date.now() - 1800000) // 30 min ago
+      },
+      
+      // Additional RFID scans for testing
+      {
+        deviceId: 'RFID_READER_01',
+        sensorType: 'rfid',
+        value: 'RFID_002',
+        unit: 'tag',
+        location: { warehouse: 'Main Warehouse', zone: 'Receiving Area' },
+        productId: createdProducts[1]._id, // Gaming Laptop
+        metadata: {
+          scanType: 'inventory_tracking',
+          productName: 'Gaming Laptop',
+          action: 'inbound',
+          quantity: 2,
+          previousStock: 1,
+          rfidTag: 'RFID_002'
+        },
+        alert: { isTriggered: false },
+        createdAt: new Date(Date.now() - 3600000) // 1 hour ago
+      },
+      {
+        deviceId: 'RFID_READER_02',
+        sensorType: 'rfid',
+        value: 'RFID_003',
+        unit: 'tag',
+        location: { warehouse: 'Main Warehouse', zone: 'Shipping Dock' },
+        productId: createdProducts[2]._id, // Smartphone
+        metadata: {
+          scanType: 'inventory_tracking',
+          productName: 'Smartphone',
+          action: 'outbound',
+          quantity: 1,
+          previousStock: 1,
+          rfidTag: 'RFID_003'
+        },
+        alert: { 
+          isTriggered: true,
+          level: 'critical',
+          message: 'Product now out of stock after outbound scan'
+        },
+        createdAt: new Date(Date.now() - 900000) // 15 min ago
       },
 
       // Motion detection
@@ -923,7 +983,13 @@ const seedData = async () => {
       }
     ];
 
-    await IoTReading.insertMany(iotReadings);
+    // Mark all seed readings as processed since they represent historical data
+    const processedReadings = iotReadings.map(reading => ({
+      ...reading,
+      processed: true
+    }));
+    
+    await IoTReading.insertMany(processedReadings);
 
     // Create sample orders with various statuses
     const sampleOrders = [

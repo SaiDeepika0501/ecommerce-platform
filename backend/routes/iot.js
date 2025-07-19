@@ -90,7 +90,8 @@ router.post('/readings', async (req, res) => {
       unit,
       location: device.location,
       productId: productId || device.productId,
-      metadata
+      metadata,
+      processed: true  // Mark as processed since we're handling it automatically
     });
     
     // Check for alerts
@@ -212,6 +213,35 @@ router.get('/readings', protect, async (req, res) => {
   }
 });
 
+// Get single reading by ID
+router.get('/readings/:id', protect, async (req, res) => {
+  try {
+    const reading = await IoTReading.findById(req.params.id)
+      .populate('productId', 'name');
+    
+    if (!reading) {
+      return res.status(404).json({ message: 'Reading not found' });
+    }
+    
+    // Get device info
+    const device = await IoTDevice.findOne({ deviceId: reading.deviceId });
+    reading.deviceInfo = device ? { 
+      name: device.name, 
+      type: device.type, 
+      status: device.status,
+      installationDate: device.installationDate,
+      lastMaintenance: device.lastMaintenance
+    } : null;
+    
+    res.json(reading);
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid reading ID' });
+    }
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get active alerts
 router.get('/alerts', protect, async (req, res) => {
   try {
@@ -269,10 +299,12 @@ router.get('/dashboard', protect, async (req, res) => {
   }
 });
 
-// RFID product scan simulation
+// RFID product scan simulation with automatic inventory updates
 router.post('/rfid/scan', async (req, res) => {
   try {
-    const { deviceId, rfidTag, location } = req.body;
+    const { deviceId, rfidTag, location, action = 'inbound', quantity = 1 } = req.body;
+    
+    console.log(`📡 RFID Scan Request: Tag=${rfidTag}, Action=${action}, Quantity=${quantity}`);
     
     // Find product by RFID tag (assuming it's stored in product description or custom field)
     const product = await Product.findOne({ 
@@ -285,8 +317,20 @@ router.post('/rfid/scan', async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: 'Product not found for RFID tag' });
     }
+
+    // Determine scan action based on device location
+    let scanAction = action;
+    if (location?.zone) {
+      if (location.zone.toLowerCase().includes('entrance') || 
+          location.zone.toLowerCase().includes('receiving')) {
+        scanAction = 'inbound';
+      } else if (location.zone.toLowerCase().includes('shipping') || 
+                 location.zone.toLowerCase().includes('exit')) {
+        scanAction = 'outbound';
+      }
+    }
     
-    // Create RFID reading
+    // Create RFID reading with inventory action
     const reading = new IoTReading({
       deviceId,
       sensorType: 'rfid',
@@ -295,32 +339,99 @@ router.post('/rfid/scan', async (req, res) => {
       location,
       productId: product._id,
       metadata: {
-        scanType: 'product_identification',
-        productName: product.name
-      }
+        scanType: 'inventory_tracking',
+        productName: product.name,
+        action: scanAction,
+        quantity: quantity,
+        previousStock: product.inventory.quantity
+      },
+      processed: true  // Mark as processed since we're automatically updating inventory
     });
+
+    // Update inventory based on scan action
+    let newQuantity = product.inventory.quantity;
+    let inventoryUpdated = false;
+
+    if (scanAction === 'inbound') {
+      newQuantity = product.inventory.quantity + quantity;
+      inventoryUpdated = true;
+    } else if (scanAction === 'outbound') {
+      newQuantity = Math.max(0, product.inventory.quantity - quantity);
+      inventoryUpdated = true;
+    }
+
+    // Check for alerts
+    if (newQuantity <= product.inventory.lowStockThreshold) {
+      reading.alert = {
+        isTriggered: true,
+        level: newQuantity === 0 ? 'critical' : 'medium',
+        message: `${scanAction === 'outbound' ? 'Stock reduced by RFID scan' : 'Low stock detected'}: ${newQuantity} units remaining`
+      };
+    }
     
     await reading.save();
+
+    // Update product inventory if action was specified
+    if (inventoryUpdated) {
+      product.inventory.quantity = newQuantity;
+      product.inventory.lastUpdated = new Date();
+      await product.save();
+
+      // Log inventory change for audit
+      const previousStock = reading.metadata.previousStock;
+      console.log(`📦 RFID Inventory Update: ${product.name} (${product.inventory.sku})`);
+      console.log(`   📊 Action: ${scanAction} ${quantity} units`);
+      console.log(`   📈 Stock Change: ${previousStock} → ${newQuantity} units`);
+      console.log(`   ✅ Inventory successfully updated`);
+    }
     
     // Emit real-time update
     const io = req.app.get('io');
     if (io) {
       io.emit('rfid-scan', {
         deviceId,
+        rfidTag,
         product: {
           _id: product._id,
           name: product.name,
-          price: product.price
+          price: product.price,
+          stock: newQuantity
         },
         location,
+        action: scanAction,
+        quantity,
+        inventoryUpdated,
         timestamp: reading.createdAt
       });
+
+      // Emit inventory update if stock changed
+      if (inventoryUpdated) {
+        io.emit('inventory-update', {
+          productId: product._id,
+          newQuantity,
+          previousQuantity: reading.metadata.previousStock,
+          method: 'rfid_scan',
+          action: scanAction
+        });
+      }
     }
     
     res.json({
       success: true,
-      product,
-      reading
+      product: {
+        ...product.toObject(),
+        inventory: {
+          ...product.inventory,
+          quantity: newQuantity
+        }
+      },
+      reading,
+      inventoryUpdate: inventoryUpdated ? {
+        action: scanAction,
+        quantity,
+        previousStock: reading.metadata.previousStock,
+        newStock: newQuantity
+      } : null
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -352,7 +463,8 @@ router.post('/weight/update', async (req, res) => {
         shelfId,
         estimatedQuantity,
         unitWeight
-      }
+      },
+      processed: true  // Mark as processed since we're automatically handling the data
     });
     
     // Check for low stock alert

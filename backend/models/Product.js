@@ -44,6 +44,15 @@ const productSchema = new mongoose.Schema({
     type: Map,
     of: String
   },
+  metadata: {
+    rfidTag: String,
+    unitWeight: Number,
+    dimensions: {
+      length: Number,
+      width: Number,
+      height: Number
+    }
+  },
   tags: [String],
   isActive: {
     type: Boolean,

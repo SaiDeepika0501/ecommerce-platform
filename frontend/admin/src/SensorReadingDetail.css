@@ -1,0 +1,962 @@
+/* Sensor Reading Detail Page Styles */
+.sensor-detail-container {
+  padding: 2rem;
+  background: #f8f9fa;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header Styles */
+.detail-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.back-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-right: 2rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.back-button:hover {
+  background: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.header-info h1 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 2.5rem;
+  font-weight: 600;
+}
+
+.reading-id {
+  margin: 0.5rem 0 0 0;
+  color: #6c757d;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+}
+
+/* Loading and Error States */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-message, .not-found-message {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  max-width: 500px;
+  margin: 2rem auto;
+}
+
+.error-message h3, .not-found-message h3 {
+  color: #dc3545;
+  margin-bottom: 1rem;
+}
+
+/* Grid Layout */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+/* Card Styles */
+.detail-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.detail-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.detail-card h2 {
+  margin: 0 0 1.5rem 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Info Grid */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-item label {
+  font-weight: 600;
+  color: #6c757d;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-item span {
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* Badge Styles */
+.sensor-type-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.sensor-type-badge.temperature {
+  background: linear-gradient(135deg, #ff6b6b, #ff5252);
+  color: white;
+}
+
+.sensor-type-badge.humidity {
+  background: linear-gradient(135deg, #4fc3f7, #29b6f6);
+  color: white;
+}
+
+.sensor-type-badge.rfid {
+  background: linear-gradient(135deg, #9c27b0, #8e24aa);
+  color: white;
+}
+
+.sensor-type-badge.weight {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  color: white;
+}
+
+.sensor-type-badge.motion {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: white;
+}
+
+.badge {
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.badge-warning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.badge-danger {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.badge-info {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.badge-secondary {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+/* Reading Value */
+.reading-value {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: #007bff !important;
+}
+
+/* Product Card Styles */
+.product-card {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.product-card h2 {
+  color: white;
+}
+
+.product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.product-header {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.product-image {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 3px solid rgba(255,255,255,0.2);
+}
+
+.product-details h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.8rem;
+  color: white;
+}
+
+.product-description {
+  margin: 0 0 1rem 0;
+  color: rgba(255,255,255,0.9);
+  line-height: 1.6;
+}
+
+.product-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.price {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  background: rgba(255,255,255,0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+}
+
+.category {
+  background: rgba(255,255,255,0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  color: white !important;
+}
+
+.product-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.product-stats .info-item label {
+  color: rgba(255,255,255,0.8);
+}
+
+.product-stats .info-item span {
+  color: white;
+}
+
+.stock.low {
+  color: #ffeb3b !important;
+  font-weight: 700 !important;
+}
+
+.stock.normal {
+  color: #4caf50 !important;
+  font-weight: 600 !important;
+}
+
+/* RFID Specific Styles */
+.rfid-card {
+  background: linear-gradient(135deg, #9c27b0, #8e24aa);
+  color: white;
+}
+
+.rfid-card h2 {
+  color: white;
+}
+
+.rfid-details .info-item label {
+  color: rgba(255,255,255,0.8);
+}
+
+.rfid-details .info-item span {
+  color: white;
+}
+
+.rfid-tag {
+  font-family: 'Courier New', monospace !important;
+  background: rgba(255,255,255,0.2) !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+.action-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.action-badge.inbound {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 2px solid #4caf50;
+}
+
+.action-badge.outbound {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+  border: 2px solid #ff9800;
+}
+
+.quantity {
+  font-weight: 700 !important;
+  font-size: 1.2rem !important;
+}
+
+/* Metadata Card */
+.metadata-card {
+  grid-column: 1 / -1;
+}
+
+.metadata-content {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.metadata-json {
+  margin: 0;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* Sensor Data Visualization */
+.sensor-data {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.data-visualization {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gauge {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  position: relative;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+.gauge-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.gauge-label {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.9;
+}
+
+.additional-data h4 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1.2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .sensor-detail-container {
+    padding: 1rem;
+  }
+  
+  .detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .back-button {
+    margin-right: 0;
+  }
+  
+  .product-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .product-image {
+    align-self: center;
+  }
+  
+  .header-info h1 {
+    font-size: 2rem;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .product-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .detail-card {
+    padding: 1.5rem;
+  }
+  
+  .product-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .gauge {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .gauge-value {
+    font-size: 1.2rem;
+  }
+}
+
+/* Utility Classes */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+/* Enhanced Product Details Styles */
+.product-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  margin-top: 20px;
+}
+
+.stat-section {
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  padding: 20px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+}
+
+.stat-section h4 {
+  margin: 0 0 15px 0;
+  color: white;
+  font-size: 1.1em;
+  font-weight: 600;
+  border-bottom: 2px solid rgba(255,255,255,0.3);
+  padding-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.product-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tag {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.85em;
+  font-weight: 500;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.rating {
+  background: rgba(255,193,7,0.2);
+  color: #ffc107;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.9em;
+  font-weight: 600;
+  border: 1px solid rgba(255,193,7,0.3);
+}
+
+.status.active {
+  color: #4caf50 !important;
+  font-weight: 600 !important;
+}
+
+.status.inactive {
+  color: #f44336 !important;
+  font-weight: 600 !important;
+}
+
+.rfid-tag {
+  font-family: 'Courier New', monospace;
+  background: rgba(255,255,255,0.2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+/* Business Impact & Actions Styles */
+.impact-card {
+  background: linear-gradient(135deg, #1e3a8a, #1e40af);
+  border: 2px solid rgba(59, 130, 246, 0.3);
+}
+
+.impact-card h2 {
+  color: #fbbf24;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.impact-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.impact-section h3 {
+  margin: 0 0 20px 0;
+  color: #fbbf24;
+  font-size: 1.1em;
+  font-weight: 600;
+  border-bottom: 2px solid rgba(251, 191, 36, 0.3);
+  padding-bottom: 8px;
+}
+
+.impact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.impact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.impact-item label {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.action-badge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9em;
+  text-align: center;
+}
+
+.action-badge.inbound {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.action-badge.outbound {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.quantity-change {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.stock-level {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.stock-level.low {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: white;
+}
+
+.stock-level.normal {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.status-badge.warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.status-badge.normal {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.threshold-badge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.threshold-badge.violation {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: white;
+}
+
+.threshold-badge.normal {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.alert-level {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.alert-level.low {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  color: white;
+}
+
+.alert-level.medium {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.alert-level.high {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: white;
+}
+
+.alert-level.critical {
+  background: linear-gradient(135deg, #7c2d12, #92400e);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.alert-message {
+  padding: 8px 12px;
+  background: rgba(220, 38, 38, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-style: italic;
+}
+
+/* Actions List */
+.actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.action-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.action-item.completed {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.action-item.pending {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.action-icon {
+  font-size: 1.5em;
+  flex-shrink: 0;
+}
+
+.action-details {
+  flex: 1;
+}
+
+.action-details strong {
+  color: white;
+  font-size: 1.1em;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.action-details p {
+  color: rgba(255,255,255,0.8);
+  margin: 0;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+/* Recommendations */
+.recommendations {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.recommendation {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.recommendation.urgent {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.2), rgba(185, 28, 28, 0.2));
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.recommendation.normal {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.recommendation.info {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.rec-icon {
+  font-size: 1.5em;
+  flex-shrink: 0;
+}
+
+.rec-details {
+  flex: 1;
+}
+
+.rec-details strong {
+  color: white;
+  font-size: 1.1em;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.rec-details p {
+  color: rgba(255,255,255,0.8);
+  margin: 0;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Affected Product Styles */
+.affected-product {
+  margin-bottom: 25px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+}
+
+.product-header h4 {
+  margin: 0 0 15px 0;
+  color: #10b981;
+  font-size: 1.1em;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.product-info strong {
+  font-size: 1.2em;
+  color: white;
+  font-weight: 700;
+}
+
+.product-sku {
+  color: rgba(255,255,255,0.8);
+  font-size: 0.9em;
+  font-family: 'Courier New', monospace;
+  background: rgba(255,255,255,0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.rfid-scanned {
+  color: #fbbf24;
+  font-size: 0.9em;
+  font-family: 'Courier New', monospace;
+  background: rgba(251, 191, 36, 0.2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  width: fit-content;
+  font-weight: 600;
+}
+
+.no-product {
+  color: #f87171;
+  font-size: 0.9em;
+  font-style: italic;
+  background: rgba(248, 113, 113, 0.2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.transaction-time {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(124, 58, 237, 0.3));
+  color: #c4b5fd;
+  border-radius: 8px;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.processing-status {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.processing-status.completed {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.processing-status.pending {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}

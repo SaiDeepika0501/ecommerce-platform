@@ -19,7 +19,7 @@ const Header = () => {
       <div className="container">
         <div className="header-content">
           <Link to="/" className="logo">
-            <h1>E-Commerce</h1>
+            <h1 spellCheck={false}>E-Commerce</h1>
           </Link>
           
           <nav className="nav">

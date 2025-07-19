@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import io from 'socket.io-client';
 import './IoTDashboard.css';
+import SensorReadingDetail from './SensorReadingDetail';
 
 const IoTDashboard = () => {
   const [dashboardData, setDashboardData] = useState({
@@ -24,12 +26,22 @@ const IoTDashboard = () => {
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
   
+  // Live RFID readings state
+  const [liveRfidReadings, setLiveRfidReadings] = useState([]);
+  
+  // Selected reading for metadata modal
+  const [selectedReading, setSelectedReading] = useState(null);
+  const [showMetadataModal, setShowMetadataModal] = useState(false);
+  
+  // Navigation state for detail page
+  const [showDetailPage, setShowDetailPage] = useState(false);
+  const [selectedReadingId, setSelectedReadingId] = useState(null);
+  
   // Overview filtering states
   const [overviewFilter, setOverviewFilter] = useState({
     deviceType: 'all',
     deviceId: 'all', 
     timeRange: 'all',
-
     limit: 20
   });
   const [filteredReadings, setFilteredReadings] = useState([]);
@@ -49,19 +61,22 @@ const IoTDashboard = () => {
     fetchAlerts();
     
     // Setup real-time Socket.IO listeners
-    if (window.io) {
-      const socket = window.io();
-      
-      socket.on('iot-reading', handleNewReading);
-      socket.on('rfid-scan', handleRfidScan);
-      socket.on('inventory-update', handleInventoryUpdate);
-      
-      return () => {
-        socket.off('iot-reading');
-        socket.off('rfid-scan');
-        socket.off('inventory-update');
-      };
-    }
+    const socket = io('http://localhost:5000');
+    
+    socket.on('connect', () => {
+      console.log('🔌 Connected to IoT Dashboard Socket.IO');
+    });
+    
+    socket.on('iot-reading', handleNewReading);
+    socket.on('rfid-scan', handleRfidScan);
+    socket.on('inventory-update', handleInventoryUpdate);
+    
+    return () => {
+      socket.off('iot-reading');
+      socket.off('rfid-scan');
+      socket.off('inventory-update');
+      socket.disconnect();
+    };
     
     // Auto-refresh fallback - more frequent when simulation is running
     const refreshInterval = simulation.isRunning ? 10000 : 30000; // 10 seconds if simulation running, 30 seconds otherwise
@@ -230,12 +245,77 @@ const IoTDashboard = () => {
 
   const handleRfidScan = (data) => {
     console.log('RFID scan detected:', data);
-    // Show notification or update UI
+    console.log('Product data:', data.product);
+    console.log('Action:', data.action);
+    console.log('Quantity:', data.quantity);
+    console.log('RFID Tag:', data.rfidTag);
+    
+    // Calculate previous stock correctly
+    const currentStock = data.product?.stock || 0;
+    const previousStock = data.action === 'inbound' ? 
+      currentStock - data.quantity : 
+      currentStock + data.quantity;
+    
+    // Create a formatted reading object that matches the display format
+    const rfidReading = {
+      _id: `live-rfid-${Date.now()}`,
+      deviceId: data.deviceId,
+      sensorType: 'rfid',
+      value: data.rfidTag || `RFID_${Math.floor(Math.random() * 15) + 1}`.padStart(7, '0'),
+      unit: 'tag',
+      createdAt: data.timestamp || new Date().toISOString(),
+      metadata: {
+        scanType: 'inventory_tracking',
+        productName: data.product?.name || 'Unknown Product',
+        action: data.action,
+        quantity: data.quantity,
+        previousStock: previousStock,
+        currentStock: currentStock,
+        productId: data.product?._id
+      },
+      location: {
+        zone: data.location?.zone || 'Main Warehouse',
+        warehouse: data.location?.warehouse || 'Warehouse A'
+      },
+      deviceInfo: {
+        name: data.deviceId
+      },
+      alert: currentStock <= 10 ? {
+        isTriggered: true,
+        level: currentStock <= 5 ? 'critical' : 'warning',
+        message: `Low stock detected: ${currentStock} units remaining`
+      } : null
+    };
+
+    // Add to live RFID readings (keep only last 20)
+    setLiveRfidReadings(prev => [rfidReading, ...prev.slice(0, 19)]);
+    
+    // Also add to dashboard recent readings for immediate display
+    setDashboardData(prev => ({
+      ...prev,
+      recentReadings: [rfidReading, ...prev.recentReadings.slice(0, 19)]
+    }));
   };
 
   const handleInventoryUpdate = (data) => {
     console.log('Inventory updated via IoT:', data);
     // Update inventory displays
+  };
+
+  const handleReadingClick = (reading) => {
+    // Navigate to detail page instead of showing modal
+    setSelectedReadingId(reading._id);
+    setShowDetailPage(true);
+  };
+
+  const handleBackToDashboard = () => {
+    setShowDetailPage(false);
+    setSelectedReadingId(null);
+  };
+
+  const closeMetadataModal = () => {
+    setShowMetadataModal(false);
+    setSelectedReading(null);
   };
 
   const simulateIoTData = async () => {
@@ -285,30 +365,94 @@ const IoTDashboard = () => {
 
   const simulateRfidScan = async () => {
     try {
-      const rfidTags = ['RFID_BUTTON_001', 'RFID_BUTTON_002', 'RFID_BUTTON_003', 'RFID_PRODUCT_SCAN', 'RFID_MANUAL_TEST'];
-      const randomTag = rfidTags[Math.floor(Math.random() * rfidTags.length)];
+      // ALL 15 RFID tags with complete product mapping
+      const allRfidProducts = [
+        { tag: 'RFID_001', name: 'Wireless Bluetooth Headphones', sku: 'WBH-001' },
+        { tag: 'RFID_002', name: 'Gaming Laptop', sku: 'GL-002' },
+        { tag: 'RFID_003', name: 'Smartphone 128GB', sku: 'SP-003' },
+        { tag: 'RFID_004', name: 'Wireless Charging Pad', sku: 'WCP-004' },
+        { tag: 'RFID_005', name: 'Smart Fitness Watch', sku: 'SFW-005' },
+        { tag: 'RFID_006', name: 'Wireless Earbuds Pro', sku: 'WEP-006' },
+        { tag: 'RFID_007', name: 'Cotton T-Shirt', sku: 'CTS-007' },
+        { tag: 'RFID_008', name: 'Denim Jeans', sku: 'DJ-008' },
+        { tag: 'RFID_009', name: 'Smart LED Bulb', sku: 'SLB-009' },
+        { tag: 'RFID_010', name: 'Artificial Plant', sku: 'AP-010' },
+        { tag: 'RFID_011', name: 'Coffee Maker', sku: 'CM-011' },
+        { tag: 'RFID_012', name: 'Resistance Bands', sku: 'RB-012' },
+        { tag: 'RFID_013', name: 'Ceramic Mug', sku: 'CMG-013' },
+        { tag: 'RFID_014', name: 'Phone Case Premium', sku: 'PCP-014' },
+        { tag: 'RFID_015', name: 'JavaScript Programming Guide', sku: 'JPG-015' }
+      ];
+
+      // Randomly select one of the 15 products
+      const randomProduct = allRfidProducts[Math.floor(Math.random() * allRfidProducts.length)];
       
-      // Use direct readings API since product association might not work
-      await axios.post('http://localhost:5000/api/iot/readings', {
-        deviceId: 'RFID_READER_01',
-        sensorType: 'rfid',
-        value: randomTag,
-        unit: 'tag',
-        metadata: {
-          scanType: 'dashboard_simulation',
-          timestamp: new Date().toISOString(),
-          buttonTriggered: true
-        }
+      // Random scenario generation
+      const locations = [
+        { warehouse: 'Main Warehouse', zone: 'Entrance Gate' },
+        { warehouse: 'Main Warehouse', zone: 'Shipping Dock' },
+        { warehouse: 'Secondary Warehouse', zone: 'Receiving Bay' },
+        { warehouse: 'Main Warehouse', zone: 'Storage Area A' },
+        { warehouse: 'Secondary Warehouse', zone: 'Quality Control' },
+        { warehouse: 'Main Warehouse', zone: 'Loading Dock' }
+      ];
+      
+      const readers = ['RFID_READER_01', 'RFID_READER_02', 'RFID_READER_03'];
+      const actions = ['inbound', 'outbound'];
+      
+      const scenario = {
+        tag: randomProduct.tag,
+        deviceId: readers[Math.floor(Math.random() * readers.length)],
+        location: locations[Math.floor(Math.random() * locations.length)],
+        action: actions[Math.floor(Math.random() * actions.length)],
+        quantity: Math.floor(Math.random() * 8) + 1, // 1-8 units
+        productName: randomProduct.name,
+        sku: randomProduct.sku
+             };
+      
+      // Use the enhanced RFID scan API that updates inventory
+      const response = await axios.post('http://localhost:5000/api/iot/rfid/scan', {
+        deviceId: scenario.deviceId,
+        rfidTag: scenario.tag,
+        location: scenario.location,
+        action: scenario.action,
+        quantity: scenario.quantity
       });
       
-              console.log('RFID scan simulated via dashboard:', randomTag);
+      console.log(`📦 RFID ${scenario.action.toUpperCase()} scan simulated:`, {
+        tag: scenario.tag,
+        product: scenario.productName,
+        action: scenario.action,
+        quantity: scenario.quantity,
+        location: scenario.location.zone,
+        inventoryUpdated: response.data.inventoryUpdate
+      });
+      
+      // Show user notification if inventory was updated
+      if (response.data.inventoryUpdate) {
+        const update = response.data.inventoryUpdate;
+        const message = `📦 Inventory Updated: ${scenario.productName} - ${update.action} ${update.quantity} units (${update.previousStock} → ${update.newStock})`;
         
-        // Refresh dashboard data immediately to show new reading
-        setTimeout(() => {
-          fetchDashboardData();
-        }, 1000); // Wait 1 second for the reading to be saved
+        // You could show this as a toast notification
+        console.log(`✅ ${message}`);
+        
+        // Optional: Set a temporary success message state
+        setError(''); // Clear any errors
+      }
+        
+      // Refresh dashboard data immediately to show new reading
+      setTimeout(() => {
+        fetchDashboardData();
+      }, 1000); // Wait 1 second for the reading to be saved
     } catch (error) {
       console.error('Error simulating RFID scan:', error);
+      
+      // Show user-friendly error message
+      if (error.response?.data?.message) {
+        setError(`RFID Scan Error: ${error.response.data.message}`);
+      } else {
+        setError('Failed to simulate RFID scan. Check console for details.');
+      }
     }
   };
 
@@ -534,6 +678,16 @@ const IoTDashboard = () => {
 
   if (loading) return <div className="loading">Loading IoT Dashboard...</div>;
 
+  // Show detail page if selected
+  if (showDetailPage && selectedReadingId) {
+    return (
+      <SensorReadingDetail 
+        readingId={selectedReadingId}
+        onBack={handleBackToDashboard}
+      />
+    );
+  }
+
   return (
     <div className="iot-dashboard">
       <div className="dashboard-header">
@@ -707,7 +861,12 @@ const IoTDashboard = () => {
                     }
                   
                   return readingsToShow.map(reading => (
-                    <div key={reading._id} className={`reading-item ${reading.alert?.isTriggered ? 'has-alert' : ''}`}>
+                    <div 
+                      key={reading._id} 
+                      className={`reading-item ${reading.alert?.isTriggered ? 'has-alert' : ''} clickable`}
+                      onClick={() => handleReadingClick(reading)}
+                      title="Click to view detailed metadata"
+                    >
                       <span className="device-name">{reading.deviceInfo?.name || reading.deviceId}</span>
                       <span className="sensor-type">
                         {reading.sensorType}
@@ -1113,27 +1272,117 @@ const IoTDashboard = () => {
             </div>
           </div>
           <div className="live-readings">
-            {dashboardData.recentReadings.slice(0, 20).map(reading => (
-              <div key={reading._id} className="live-reading-card">
-                <div className="reading-header">
-                  <h4>{reading.deviceInfo?.name || reading.deviceId}</h4>
-                  <span className="reading-type">{reading.sensorType}</span>
+                         {dashboardData.recentReadings.slice(0, 20).map(reading => {
+               const isRfidReading = reading.sensorType === 'rfid';
+               const isInventoryAction = reading.metadata?.scanType === 'inventory_tracking' || reading.metadata?.productName;
+              
+              return (
+                <div 
+                  key={reading._id} 
+                  className={`live-reading-card ${isRfidReading ? 'rfid-reading' : 'standard-reading'} clickable`}
+                  onClick={() => handleReadingClick(reading)}
+                  title="Click to view detailed metadata"
+                >
+                  {/* Enhanced RFID Reading Display */}
+                  {isRfidReading && isInventoryAction ? (
+                    <>
+                                             <div className="rfid-reading-header">
+                         <div className="rfid-main-info">
+                           <h4 className="product-name">{reading.metadata?.productName || reading.productId?.name || 'Unknown Product'}</h4>
+                           <div className="rfid-tag-id">{reading.value}</div>
+                         </div>
+                        <div className={`action-badge ${reading.metadata?.action}`}>
+                          <span className="action-icon">
+                            {reading.metadata?.action === 'inbound' ? '📥' : '📤'}
+                          </span>
+                          <span className="action-text">
+                            {reading.metadata?.action?.toUpperCase() || 'SCAN'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="rfid-details">
+                        <div className="quantity-info">
+                          <span className="quantity-label">Quantity:</span>
+                          <span className="quantity-value">
+                            {reading.metadata?.action === 'inbound' ? '+' : '-'}{reading.metadata?.quantity || 1} units
+                          </span>
+                        </div>
+                        <div className="stock-info">
+                          <span className="stock-label">Stock Level:</span>
+                          <span className="stock-change">
+                            {reading.metadata?.previousStock} → 
+                            <strong className={reading.metadata?.action === 'inbound' ? 'stock-increase' : 'stock-decrease'}>
+                              {reading.metadata?.currentStock}
+                            </strong>
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="rfid-location">
+                        <span className="location-icon">📍</span>
+                        <span className="location-text">
+                          {reading.location?.zone || reading.location?.warehouse || 'Warehouse'}
+                        </span>
+                        <span className="device-info">
+                          via {reading.deviceInfo?.name || reading.deviceId}
+                        </span>
+                      </div>
+                      
+                                             <div className="reading-timestamp">
+                         {new Date(reading.createdAt).toLocaleTimeString()}
+                       </div>
+                       
+                       {reading.alert?.isTriggered && (
+                         <div className={`alert-banner ${reading.alert.level}`}>
+                           <span className="alert-icon">🚨</span>
+                           <span className="alert-message">
+                             {reading.metadata?.productName || reading.productId?.name || 'Product'}: {reading.alert.message}
+                           </span>
+                         </div>
+                       )}
+                    </>
+                  ) : (
+                    /* Standard Sensor Reading Display */
+                    <>
+                      <div className="reading-header">
+                        <div className="sensor-icon">
+                          {reading.sensorType === 'temperature' ? '🌡️' : 
+                           reading.sensorType === 'humidity' ? '💧' :
+                           reading.sensorType === 'weight' ? '⚖️' :
+                           reading.sensorType === 'motion' ? '🚶' :
+                           reading.sensorType === 'camera' ? '📹' :
+                           reading.sensorType === 'barcode' ? '📊' : '📡'}
+                        </div>
+                        <div className="sensor-info">
+                          <h4>{reading.deviceInfo?.name || reading.deviceId}</h4>
+                          <span className="reading-type">{reading.sensorType}</span>
+                        </div>
+                      </div>
+                      <div className="reading-value">
+                        {reading.value} {reading.unit}
+                      </div>
+                      <div className="reading-time">
+                        {new Date(reading.createdAt).toLocaleTimeString()}
+                      </div>
+                      {reading.metadata && Object.keys(reading.metadata).length > 0 && (
+                        <div className="reading-metadata">
+                          {Object.entries(reading.metadata).map(([key, value]) => (
+                            <span key={key}>{key}: {value}</span>
+                          ))}
+                        </div>
+                      )}
+                      {reading.alert?.isTriggered && (
+                        <div className={`alert-banner ${reading.alert.level}`}>
+                          <span className="alert-icon">🚨</span>
+                          <span className="alert-message">{reading.alert.message}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
-                <div className="reading-value">
-                  {reading.value} {reading.unit}
-                </div>
-                <div className="reading-time">
-                  {new Date(reading.createdAt).toLocaleTimeString()}
-                </div>
-                {reading.metadata && (
-                  <div className="reading-metadata">
-                    {Object.entries(reading.metadata).map(([key, value]) => (
-                      <span key={key}>{key}: {value}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -1221,6 +1470,196 @@ const IoTDashboard = () => {
                   <div className="no-history">No historical data found for this device.</div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Metadata Modal */}
+      {showMetadataModal && selectedReading && (
+        <div className="modal-overlay" onClick={closeMetadataModal}>
+          <div className="modal-content metadata-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>📊 Sensor Reading Metadata</h3>
+              <button className="close-button" onClick={closeMetadataModal}>
+                ✕
+              </button>
+            </div>
+            
+            <div className="metadata-content">
+              {/* Basic Reading Info */}
+              <div className="metadata-section">
+                <h4>📈 Basic Information</h4>
+                <div className="metadata-grid">
+                  <div className="metadata-item">
+                    <span className="metadata-label">Reading ID:</span>
+                    <span className="metadata-value">{selectedReading._id}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <span className="metadata-label">Device ID:</span>
+                    <span className="metadata-value">{selectedReading.deviceId}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <span className="metadata-label">Sensor Type:</span>
+                    <span className="metadata-value">{selectedReading.sensorType}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <span className="metadata-label">Value:</span>
+                    <span className="metadata-value">{selectedReading.value} {selectedReading.unit}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <span className="metadata-label">Timestamp:</span>
+                    <span className="metadata-value">{new Date(selectedReading.createdAt).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* RFID Specific Metadata */}
+              {selectedReading.sensorType === 'rfid' && selectedReading.metadata && (
+                <div className="metadata-section">
+                  <h4>🏷️ RFID Scan Details</h4>
+                  <div className="metadata-grid">
+                    {selectedReading.metadata.productName && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Product Name:</span>
+                        <span className="metadata-value">{selectedReading.metadata.productName}</span>
+                      </div>
+                    )}
+                    {selectedReading.metadata.action && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Action:</span>
+                        <span className={`metadata-value action-${selectedReading.metadata.action}`}>
+                          {selectedReading.metadata.action === 'inbound' ? '📥' : '📤'} 
+                          {selectedReading.metadata.action.toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    {selectedReading.metadata.quantity && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Quantity:</span>
+                        <span className="metadata-value">
+                          {selectedReading.metadata.action === 'inbound' ? '+' : '-'}{selectedReading.metadata.quantity} units
+                        </span>
+                      </div>
+                    )}
+                    {selectedReading.metadata.previousStock !== undefined && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Previous Stock:</span>
+                        <span className="metadata-value">{selectedReading.metadata.previousStock} units</span>
+                      </div>
+                    )}
+                    {selectedReading.metadata.currentStock !== undefined && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Current Stock:</span>
+                        <span className="metadata-value">{selectedReading.metadata.currentStock} units</span>
+                      </div>
+                    )}
+                    {selectedReading.metadata.scanType && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Scan Type:</span>
+                        <span className="metadata-value">{selectedReading.metadata.scanType}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Location Information */}
+              {selectedReading.location && (
+                <div className="metadata-section">
+                  <h4>📍 Location Information</h4>
+                  <div className="metadata-grid">
+                    {selectedReading.location.zone && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Zone:</span>
+                        <span className="metadata-value">{selectedReading.location.zone}</span>
+                      </div>
+                    )}
+                    {selectedReading.location.warehouse && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Warehouse:</span>
+                        <span className="metadata-value">{selectedReading.location.warehouse}</span>
+                      </div>
+                    )}
+                    {selectedReading.location.coordinates && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Coordinates:</span>
+                        <span className="metadata-value">
+                          {selectedReading.location.coordinates.lat}, {selectedReading.location.coordinates.lng}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Device Information */}
+              {selectedReading.deviceInfo && (
+                <div className="metadata-section">
+                  <h4>🔧 Device Information</h4>
+                  <div className="metadata-grid">
+                    {selectedReading.deviceInfo.name && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Device Name:</span>
+                        <span className="metadata-value">{selectedReading.deviceInfo.name}</span>
+                      </div>
+                    )}
+                    {selectedReading.deviceInfo.type && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Device Type:</span>
+                        <span className="metadata-value">{selectedReading.deviceInfo.type}</span>
+                      </div>
+                    )}
+                    {selectedReading.deviceInfo.status && (
+                      <div className="metadata-item">
+                        <span className="metadata-label">Device Status:</span>
+                        <span className={`metadata-value status-${selectedReading.deviceInfo.status}`}>
+                          {selectedReading.deviceInfo.status}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Alert Information */}
+              {selectedReading.alert && selectedReading.alert.isTriggered && (
+                <div className="metadata-section">
+                  <h4>🚨 Alert Information</h4>
+                  <div className="metadata-grid">
+                    <div className="metadata-item">
+                      <span className="metadata-label">Alert Level:</span>
+                      <span className={`metadata-value alert-level-${selectedReading.alert.level}`}>
+                        {selectedReading.alert.level.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="metadata-item">
+                      <span className="metadata-label">Alert Message:</span>
+                      <span className="metadata-value">{selectedReading.alert.message}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Raw Metadata */}
+              {selectedReading.metadata && Object.keys(selectedReading.metadata).length > 0 && (
+                <div className="metadata-section">
+                  <h4>🔍 Raw Metadata</h4>
+                  <div className="raw-metadata">
+                    <pre>{JSON.stringify(selectedReading.metadata, null, 2)}</pre>
+                  </div>
+                </div>
+              )}
+
+              {/* Additional Data */}
+              {selectedReading.additionalData && (
+                <div className="metadata-section">
+                  <h4>📋 Additional Data</h4>
+                  <div className="raw-metadata">
+                    <pre>{JSON.stringify(selectedReading.additionalData, null, 2)}</pre>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

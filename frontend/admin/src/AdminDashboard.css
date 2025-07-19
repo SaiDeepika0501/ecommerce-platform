@@ -25,8 +25,20 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  color: #6c757d;
-  font-size: 1rem;
+  color: #2c3e50; /* Changed from light gray to dark blue for better visibility */
+  font-size: 1.1rem; /* Slightly increased font size */
+  font-weight: 500; /* Added font weight for better visibility */
+}
+
+.admin-info span {
+  background: linear-gradient(135deg, #007bff, #0056b3); /* Added gradient background */
+  color: white; /* White text on colored background */
+  padding: 8px 16px; /* Added padding */
+  border-radius: 20px; /* Rounded corners */
+  font-weight: 600; /* Bold font */
+  box-shadow: 0 2px 4px rgba(0,123,255,0.3); /* Subtle shadow */
+  border: 2px solid #007bff; /* Blue border */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1); /* Text shadow for better readability */
 }
 
 .refresh-dashboard {

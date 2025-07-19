@@ -77,9 +77,9 @@ const Home = () => {
               <p>Manage your e-commerce platform and monitor IoT infrastructure</p>
               <div className="hero-actions">
                 <Link to="/admin" className="btn btn-primary">Admin Dashboard</Link>
-                <a href="http://localhost:3005" target="_blank" rel="noopener noreferrer" className="btn btn-outline">
+                <Link to="/admin?tab=iot" className="btn btn-outline">
                   IoT Management
-                </a>
+                </Link>
               </div>
             </>
           ) : (

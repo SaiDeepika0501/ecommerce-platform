@@ -7,7 +7,17 @@ import { formatINR } from './utils/currency';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('users'); // Start with users instead of overview
+  // Get initial tab from URL parameter
+  const getInitialTab = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (['users', 'orders', 'inventory', 'iot'].includes(tabParam)) {
+      return tabParam;
+    }
+    return 'users'; // Default tab
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab());
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalOrders: 0,
@@ -85,6 +95,14 @@ const AdminDashboard = () => {
     window.location.href = '/';
   };
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    // Update URL parameter without page reload
+    const url = new URL(window.location);
+    url.searchParams.set('tab', tab);
+    window.history.pushState({}, '', url);
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'users':
@@ -118,14 +136,14 @@ const AdminDashboard = () => {
       <div className="dashboard-tabs">
         <button 
           className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
-          onClick={() => setActiveTab('users')}
+          onClick={() => handleTabChange('users')}
         >
           👥 Users Management
           <span className="tab-badge">{stats.totalUsers}</span>
         </button>
         <button 
           className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
-          onClick={() => setActiveTab('orders')}
+          onClick={() => handleTabChange('orders')}
         >
           📋 Orders Management
           <span className="tab-badge">{stats.totalOrders}</span>
@@ -135,7 +153,7 @@ const AdminDashboard = () => {
         </button>
         <button 
           className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
-          onClick={() => setActiveTab('inventory')}
+          onClick={() => handleTabChange('inventory')}
         >
           📦 Inventory Management
           <span className="tab-badge">{stats.totalProducts}</span>
@@ -145,7 +163,7 @@ const AdminDashboard = () => {
         </button>
         <button 
           className={`tab-btn ${activeTab === 'iot' ? 'active' : ''}`}
-          onClick={() => setActiveTab('iot')}
+          onClick={() => handleTabChange('iot')}
         >
           🌐 IoT Management
         </button>
