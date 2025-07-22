@@ -24,11 +24,24 @@ const iotReadingSchema = new mongoose.Schema({
     ref: 'Product'
   },
   metadata: {
+    // Environmental sensor data
     temperature: Number,
     humidity: Number,
     pressure: Number,
     lightLevel: Number,
-    vibration: Number
+    vibration: Number,
+    
+    // RFID/Inventory tracking data
+    scanType: String,
+    productName: String,
+    action: String,
+    quantity: Number,
+    previousStock: Number,
+    currentStock: Number,
+    rfidTag: String,
+    
+    // Allow any additional metadata using Mixed type
+    additionalData: mongoose.Schema.Types.Mixed
   },
   alert: {
     isTriggered: {
