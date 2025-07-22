@@ -330,7 +330,22 @@ router.post('/rfid/scan', async (req, res) => {
       }
     }
     
-    // Create RFID reading with inventory action
+    // Store the actual previous stock before making any changes
+    const previousStock = product.inventory.quantity;
+    
+    // Update inventory based on scan action
+    let newQuantity = product.inventory.quantity;
+    let inventoryUpdated = false;
+
+    if (scanAction === 'inbound') {
+      newQuantity = product.inventory.quantity + quantity;
+      inventoryUpdated = true;
+    } else if (scanAction === 'outbound') {
+      newQuantity = Math.max(0, product.inventory.quantity - quantity);
+      inventoryUpdated = true;
+    }
+
+    // Create RFID reading with inventory action and correct stock levels
     const reading = new IoTReading({
       deviceId,
       sensorType: 'rfid',
@@ -343,22 +358,11 @@ router.post('/rfid/scan', async (req, res) => {
         productName: product.name,
         action: scanAction,
         quantity: quantity,
-        previousStock: product.inventory.quantity
+        previousStock: previousStock, // Stock level before the change
+        currentStock: newQuantity     // Stock level after the change
       },
       processed: true  // Mark as processed since we're automatically updating inventory
     });
-
-    // Update inventory based on scan action
-    let newQuantity = product.inventory.quantity;
-    let inventoryUpdated = false;
-
-    if (scanAction === 'inbound') {
-      newQuantity = product.inventory.quantity + quantity;
-      inventoryUpdated = true;
-    } else if (scanAction === 'outbound') {
-      newQuantity = Math.max(0, product.inventory.quantity - quantity);
-      inventoryUpdated = true;
-    }
 
     // Check for alerts
     if (newQuantity <= product.inventory.lowStockThreshold) {
@@ -400,6 +404,8 @@ router.post('/rfid/scan', async (req, res) => {
         location,
         action: scanAction,
         quantity,
+        previousStock: previousStock,
+        currentStock: newQuantity,
         inventoryUpdated,
         timestamp: reading.createdAt
       });
@@ -409,7 +415,7 @@ router.post('/rfid/scan', async (req, res) => {
         io.emit('inventory-update', {
           productId: product._id,
           newQuantity,
-          previousQuantity: reading.metadata.previousStock,
+          previousQuantity: previousStock,
           method: 'rfid_scan',
           action: scanAction
         });

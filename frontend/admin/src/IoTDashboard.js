@@ -249,12 +249,12 @@ const IoTDashboard = () => {
     console.log('Action:', data.action);
     console.log('Quantity:', data.quantity);
     console.log('RFID Tag:', data.rfidTag);
+    console.log('Previous Stock:', data.previousStock);
+    console.log('Current Stock:', data.currentStock);
     
-    // Calculate previous stock correctly
-    const currentStock = data.product?.stock || 0;
-    const previousStock = data.action === 'inbound' ? 
-      currentStock - data.quantity : 
-      currentStock + data.quantity;
+    // Use the correct stock values from the backend
+    const previousStock = data.previousStock || 0;
+    const currentStock = data.currentStock || data.product?.stock || 0;
     
     // Create a formatted reading object that matches the display format
     const rfidReading = {
