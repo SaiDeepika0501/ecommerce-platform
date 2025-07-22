@@ -34,7 +34,7 @@ const Footer = () => {
         
         <div className="footer-bottom">
           <p>&copy; 2025 Modular E-Commerce Platform. Built for scalability and modern integration.</p>
-          <p className="dev-credits">🎓 Student Project by <strong>Sai Deepika</strong> & <strong>Sai Pravalika</strong></p>
+          <p className="dev-credits">🎓 Student Project by <strong>Sai Deepika</strong> & <strong>Uha Smitha</strong></p>
         </div>
       </div>
     </footer>

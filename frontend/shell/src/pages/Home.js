@@ -133,40 +133,7 @@ const Home = () => {
           </div>
         )}
 
-        {/* Student Internship Project Credits - Only for non-authenticated users */}
-        {!isAuthenticated && (
-          <div className="dev-team-section">
-          <div className="dev-team-content">
-            <h2>🎓 Student Internship Project</h2>
-            <p>This innovative e-commerce platform with IoT integration was developed as an academic internship project under professor guidance</p>
-            <div className="dev-team-grid">
-              <div className="dev-card">
-                <div className="dev-avatar">👩‍🎓</div>
-                <h3>Sai Deepika</h3>
-                <p>Instrumentation and Control Engineering Student</p>
-                <div className="dev-skills">
-                  <span className="skill-tag">React</span>
-                  <span className="skill-tag">Node.js</span>
-                  <span className="skill-tag">IoT Integration</span>
-                </div>
-              </div>
-              <div className="dev-card">
-                <div className="dev-avatar">👩‍🎓</div>
-                <h3>Sai Pravalika</h3>
-                <p>Instrumentation and Control Engineering Student</p>
-                <div className="dev-skills">
-                  <span className="skill-tag">MongoDB</span>
-                  <span className="skill-tag">Frontend Dev</span>
-                  <span className="skill-tag">API Design</span>
-                </div>
-              </div>
-            </div>
-            <div className="dev-footer">
-              <p>📚 Completed under academic supervision as part of internship curriculum</p>
-            </div>
-          </div>
-        </div>
-        )}
+
 
         {/* IoT Management Summary - Admin Only */}
         {isAdmin && isAuthenticated && (

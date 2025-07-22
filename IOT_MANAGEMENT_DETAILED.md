@@ -567,10 +567,7 @@ Cost Savings Analysis:
 
 The IoT Management System represents a comprehensive solution for modern e-commerce operations, providing real-time visibility, automated responses, and data-driven insights. Through careful implementation of these systems and adherence to best practices, organizations can achieve significant improvements in operational efficiency, security, and customer satisfaction.
 
-**Student Internship Project**  
-*Developed by: Sai Deepika & Sai Pravalika*  
-*Department: Instrumentation and Control Engineering*  
-*Academic Year: 2024-2025*
+
 
 ---
 
